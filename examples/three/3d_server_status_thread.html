@@ -57,18 +57,9 @@
             };
         }
 
-        class Socket extends EventEmitter {
-            constructor(server) {
-                super();
-
-                this.server = server;
-
-                this.connected = false;
-
-                // Latency average
-                this.latencyArray = [];
-
-                // Load average
+        class GraphData {
+            constructor() {
+                // Graph averages
                 this.ghostArray = [];
                 this.array = [];
                 this.largeGhostArray = [];
@@ -79,6 +70,111 @@
                 // Median downsample
                 this.largeChunkSize = 200;
                 this.smallChunkSize = 10;
+                this.realtimeCounter = 0;
+            }
+
+            // Public methods
+
+            setData = data => {
+                this.data = data;
+
+                // Last 320 status updates for small graph (160 + 160, ghost + array)
+                data = data.slice(-320);
+                this.ghostArray = data.slice(0, 160);
+                this.array = data.slice(-160);
+
+                // Last 20 status updates for realtime graph (10 + 10, ghost + array)
+                const realtimeData = data.slice(-20);
+                this.realtimeGhostArray = realtimeData.slice(0, 10);
+                this.realtimeArray = realtimeData.slice(-10);
+
+                // Large median downsample
+                const array = [];
+
+                for (let i = 0; i < this.data.length; i += this.largeChunkSize) {
+                    array.push(median(this.data.slice(i, i + this.largeChunkSize)));
+                }
+
+                // Past day (21488 status updates) downsampled to 108 (54 + 54, ghost + array)
+                this.largeArray = array.splice(-54, 54);
+                this.largeGhostArray = array.splice(-54, 54);
+
+                // Small median downsample
+                array.length = 0;
+
+                for (let i = 0; i < data.length; i += this.smallChunkSize) {
+                    array.push(median(data.slice(i, i + this.smallChunkSize)));
+                }
+
+                // Last 320 status updates downsampled to 32 (16 + 16, ghost + array)
+                this.smallGhostArray = array.slice(0, 16);
+                this.smallArray = array.slice(-16);
+            };
+
+            getArrays = () => ({
+                ghostArray: this.ghostArray,
+                array: this.array,
+                largeGhostArray: this.largeGhostArray,
+                largeArray: this.largeArray,
+                smallGhostArray: this.smallGhostArray,
+                smallArray: this.smallArray,
+                realtimeGhostArray: this.realtimeGhostArray,
+                realtimeArray: this.realtimeArray
+            });
+
+            setArrays = ({
+                ghostArray,
+                array,
+                largeGhostArray,
+                largeArray,
+                smallGhostArray,
+                smallArray,
+                realtimeGhostArray,
+                realtimeArray
+            }) => {
+                this.ghostArray = ghostArray;
+                this.array = array;
+                this.largeGhostArray = largeGhostArray;
+                this.largeArray = largeArray;
+                this.smallGhostArray = smallGhostArray;
+                this.smallArray = smallArray;
+                this.realtimeGhostArray = realtimeGhostArray;
+                this.realtimeArray = realtimeArray;
+            };
+
+            update = value => {
+                const ghost = this.array.shift();
+                this.array.push(value);
+                this.ghostArray.shift();
+                this.ghostArray.push(ghost);
+
+                // Last 20 status updates for realtime graph (10 + 10, ghost + array)
+                const realtimeData = this.array.slice(-20);
+                this.realtimeGhostArray = realtimeData.slice(0, 10);
+                this.realtimeArray = realtimeData.slice(-10);
+
+                // Small median downsample
+                if (++this.realtimeCounter === this.smallChunkSize) {
+                    const medianGhost = this.smallArray.shift();
+                    this.smallArray.push(median(this.realtimeArray));
+                    this.smallGhostArray.shift();
+                    this.smallGhostArray.push(medianGhost);
+
+                    this.realtimeCounter = 0;
+                }
+            };
+        }
+
+        class Socket extends EventEmitter {
+            constructor(server) {
+                super();
+
+                this.server = server;
+
+                this.connected = false;
+
+                // Latency average
+                this.latencyArray = [];
 
                 this.connect();
             }
@@ -219,51 +315,10 @@
                             const last = data.pop();
 
                             // Load average data
-                            data = data.map(data => data[2] * 100); // percentage
-                            this.data = data;
+                            const loadAvgData = new GraphData();
+                            loadAvgData.setData(data.map(data => data[2] * 100)); // percentage
 
-                            // Last 320 status updates for load average graph (160 + 160, ghost + array)
-                            data = data.slice(-320);
-                            this.ghostArray = data.slice(0, 160);
-                            this.array = data.slice(-160);
-
-                            // Last 20 status updates for realtime graph (10 + 10, ghost + array)
-                            const realtimeData = data.slice(-20);
-                            const realtimeGhostArray = realtimeData.slice(0, 10);
-                            const realtimeArray = realtimeData.slice(-10);
-
-                            // Large median downsample
-                            const array = [];
-
-                            for (let i = 0; i < this.data.length; i += this.largeChunkSize) {
-                                array.push(median(this.data.slice(i, i + this.largeChunkSize)));
-                            }
-
-                            // Past day (21488 status updates) downsampled to 108 (54 + 54, ghost + array)
-                            this.largeArray = array.splice(-54, 54);
-                            this.largeGhostArray = array.splice(-54, 54);
-
-                            // Small median downsample
-                            array.length = 0;
-
-                            for (let i = 0; i < data.length; i += this.smallChunkSize) {
-                                array.push(median(data.slice(i, i + this.smallChunkSize)));
-                            }
-
-                            // Last 320 status updates downsampled to 32 (16 + 16, ghost + array)
-                            this.smallGhostArray = array.slice(0, 16);
-                            this.smallArray = array.slice(-16);
-
-                            this.emit('array', {
-                                ghostArray: this.ghostArray,
-                                array: this.array,
-                                largeGhostArray: this.largeGhostArray,
-                                largeArray: this.largeArray,
-                                smallGhostArray: this.smallGhostArray,
-                                smallArray: this.smallArray,
-                                realtimeGhostArray,
-                                realtimeArray
-                            });
+                            this.emit('data', loadAvgData.getArrays());
 
                             data = last;
                         }
@@ -356,8 +411,8 @@
                 postMessage({ event: 'details', message: e });
             };
 
-            onArray = e => {
-                postMessage({ event: 'array', message: e });
+            onData = e => {
+                postMessage({ event: 'data', message: e });
             };
 
             onStatus = e => {
@@ -371,7 +426,7 @@
                 this.socket.on('open', this.onOpen);
                 this.socket.on('close', this.onClose);
                 this.socket.on('details', this.onDetails);
-                this.socket.on('array', this.onArray);
+                this.socket.on('data', this.onData);
                 this.socket.on('status', this.onStatus);
             };
         }
@@ -529,10 +584,6 @@
                 this.view = view;
                 this.trackers = trackers;
 
-                // Median downsample
-                this.smallChunkSize = 10;
-                this.realtimeCounter = 0;
-
                 this.initSocket();
 
                 this.addListeners();
@@ -547,7 +598,7 @@
                         // ['../../src/three.js', 'EventEmitter', 'average', 'delayedCall', 'median']
                         ['../../src/index.js', 'EventEmitter', 'average', 'delayedCall', 'median']
                     ],
-                    classes: [Socket],
+                    classes: [GraphData, Socket],
                     controller: [SocketThread, 'init']
                 });
                 this.thread.init({ server });
@@ -561,7 +612,7 @@
 
             static addListeners() {
                 this.thread.on('details', this.onDetails);
-                this.thread.on('array', this.onArray);
+                this.thread.on('data', this.onData);
                 this.thread.on('status', this.onStatus);
             }
 
@@ -802,20 +853,18 @@
                 }
             };
 
-            static onArray = ({
-                ghostArray,
-                array,
-                largeGhostArray,
-                largeArray,
-                smallGhostArray,
-                smallArray,
-                realtimeGhostArray,
-                realtimeArray
-            }) => {
-                this.ghostArray = ghostArray;
-                this.array = array;
-                this.smallGhostArray = smallGhostArray;
-                this.smallArray = smallArray;
+            static onData = data => {
+                const {
+                    largeGhostArray,
+                    largeArray,
+                    smallGhostArray,
+                    smallArray,
+                    realtimeGhostArray,
+                    realtimeArray
+                } = data;
+
+                this.loadAvgData = new GraphData();
+                this.loadAvgData.setArrays(data);
 
                 this.view.graph.setGhostArray([...smallGhostArray.toReversed(), ...largeGhostArray.toReversed()]);
                 this.view.graph.setArray([...smallArray.toReversed(), ...largeArray.toReversed()]);
@@ -839,47 +888,27 @@
                     this.ui.detailsLatencyAvgMeter.update(latencyAvg);
                 }
 
-                if (loadAvg !== undefined && this.array) {
+                if (this.loadAvgData && loadAvg !== undefined) {
                     this.ui.detailsLoadAvg.html(`${loadAvg}% (1min avg)`);
                     this.ui.detailsLoadAvgMeter.update(loadAvg);
 
-                    const ghost = this.array.shift();
-                    this.array.push(loadAvg);
-                    this.ghostArray.shift();
-                    this.ghostArray.push(ghost);
+                    this.loadAvgData.update(loadAvg);
 
-                    // Last 20 status updates for realtime graph (10 + 10, ghost + array)
-                    const realtimeData = this.array.slice(-20);
-                    const realtimeGhostArray = realtimeData.slice(0, 10);
-                    const realtimeArray = realtimeData.slice(-10);
-
-                    // Update graphs
-                    this.ui.detailsLoadAvgGraph.ghostArray.splice(-10, 10, ...realtimeGhostArray);
-                    this.ui.detailsLoadAvgGraph.array.splice(-10, 10, ...realtimeArray);
+                    this.ui.detailsLoadAvgGraph.ghostArray.splice(-10, 10, ...this.loadAvgData.realtimeGhostArray);
+                    this.ui.detailsLoadAvgGraph.array.splice(-10, 10, ...this.loadAvgData.realtimeArray);
                     this.ui.detailsLoadAvgGraph.needsUpdate = true;
 
-                    if (++this.realtimeCounter === this.smallChunkSize) {
-                        // Median downsample
-                        const value = median(realtimeArray);
-
-                        const medianGhost = this.smallArray.shift();
-                        this.smallArray.push(value);
-                        this.smallGhostArray.shift();
-                        this.smallGhostArray.push(medianGhost);
-
-                        this.view.graph.ghostArray.splice(0, 16, ...this.smallGhostArray.toReversed());
-                        this.view.graph.array.splice(0, 16, ...this.smallArray.toReversed());
+                    if (this.loadAvgData.realtimeCounter === 0) {
+                        this.view.graph.ghostArray.splice(0, 16, ...this.loadAvgData.smallGhostArray.toReversed());
+                        this.view.graph.array.splice(0, 16, ...this.loadAvgData.smallArray.toReversed());
                         this.view.graph.needsUpdate = true;
                         this.view.graph.graphNeedsUpdate = true;
 
-                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 16, ...this.smallGhostArray);
-                        this.ui.detailsLoadAvgGraph.array.splice(0, 16, ...this.smallArray);
+                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 16, ...this.loadAvgData.smallGhostArray);
+                        this.ui.detailsLoadAvgGraph.array.splice(0, 16, ...this.loadAvgData.smallArray);
                         this.ui.detailsLoadAvgGraph.graphNeedsUpdate = true;
-
-                        this.realtimeCounter = 0;
                     }
 
-                    this.view.graph.update();
                     this.ui.detailsLoadAvgGraph.update();
                 }
             };

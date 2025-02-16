@@ -115,6 +115,27 @@ export function median(numbers) {
     return sorted[middle];
 }
 
+export function peaks(numbers, chunkSize, threshold) {
+    const length = numbers.length;
+    const peaks = [];
+
+    for (let i = 0; i < length; i++) {
+        const start = Math.max(0, i - chunkSize);
+        const end = Math.min(length, i + chunkSize);
+        let sum = 0;
+
+        for (let j = start; j < end; j++) {
+            sum += Math.abs(numbers[j - 1] - numbers[j]);
+        }
+
+        if (sum > threshold) {
+            peaks.push(i);
+        }
+    }
+
+    return peaks;
+}
+
 export function shuffle(array) {
     return array.sort(() => Math.random() - 0.5);
 }

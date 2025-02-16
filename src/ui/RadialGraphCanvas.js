@@ -24,10 +24,10 @@ export class RadialGraphCanvas extends Interface {
         tension = 6,
         precision = 0,
         lookupPrecision = 0,
-        infoDistanceX = 20,
-        infoDistanceY = 10,
         markers = [],
         range = 1,
+        infoDistanceX = 20,
+        infoDistanceY = 10,
         suffix = '',
         noHover = false,
         noMarker = false,
@@ -45,10 +45,10 @@ export class RadialGraphCanvas extends Interface {
         this.tension = tension;
         this.precision = precision;
         this.lookupPrecision = lookupPrecision;
-        this.infoDistanceX = infoDistanceX;
-        this.infoDistanceY = infoDistanceY;
         this.markers = markers;
         this.range = range;
+        this.infoDistanceX = infoDistanceX;
+        this.infoDistanceY = infoDistanceY;
         this.suffix = suffix;
         this.noHover = noHover;
         this.noMarker = noMarker;

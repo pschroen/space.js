@@ -25,13 +25,14 @@ export class RadialGraphSegmentsCanvas extends Interface {
         tension = 6,
         precision = 0,
         lookupPrecision = 0,
-        infoDistanceX = 20,
-        infoDistanceY = 10,
         segments = [],
         ratio = [],
         labels = [],
         markers = [],
         range = 1,
+        infoDistanceX = 20,
+        infoDistanceY = 10,
+        labelDistance = 0,
         suffix = '',
         noHover = false,
         noMarker = false,
@@ -49,13 +50,14 @@ export class RadialGraphSegmentsCanvas extends Interface {
         this.tension = tension;
         this.precision = precision;
         this.lookupPrecision = lookupPrecision;
-        this.infoDistanceX = infoDistanceX;
-        this.infoDistanceY = infoDistanceY;
         this.segments = segments;
         this.ratio = ratio;
         this.labels = labels;
         this.markers = markers;
         this.range = range;
+        this.infoDistanceX = infoDistanceX;
+        this.infoDistanceY = infoDistanceY;
+        this.labelDistance = labelDistance;
         this.suffix = suffix;
         this.noHover = noHover;
         this.noMarker = noMarker;
@@ -672,7 +674,7 @@ export class RadialGraphSegmentsCanvas extends Interface {
 
             if (this.labels[i]) {
                 const angle = this.startAngle + (start + slice / 2) * TwoPI;
-                const radius = this.middle + this.getTextOffset(angle % TwoPI / TwoPI, this.labels[i].width / 2 + 10);
+                const radius = this.middle + (this.labelDistance || this.getTextOffset(angle % TwoPI / TwoPI, this.labels[i].width / 2 + 10));
                 const x = this.middle + radius * Math.cos(angle);
                 const y = this.middle + radius * Math.sin(angle);
 

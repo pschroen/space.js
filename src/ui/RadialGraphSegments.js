@@ -47,8 +47,8 @@ export class RadialGraphSegments extends Interface {
         tension = 6,
         precision = 0,
         lookupPrecision = 0,
-        textDistanceX = 20,
-        textDistanceY = 10,
+        infoDistanceX = 20,
+        infoDistanceY = 10,
         segments = [],
         ratio = [],
         labels = [],
@@ -72,8 +72,8 @@ export class RadialGraphSegments extends Interface {
         this.tension = tension;
         this.precision = precision;
         this.lookupPrecision = lookupPrecision;
-        this.textDistanceX = textDistanceX;
-        this.textDistanceY = textDistanceY;
+        this.infoDistanceX = infoDistanceX;
+        this.infoDistanceY = infoDistanceY;
         this.segments = segments;
         this.ratio = ratio;
         this.labels = labels;
@@ -373,17 +373,17 @@ export class RadialGraphSegments extends Interface {
         }
     }
 
-    getTextOffset(mouseAngle, textDistanceX) {
+    getTextOffset(mouseAngle, infoDistanceX) {
         let textOffset;
 
         if (mouseAngle >= 0 && mouseAngle < 0.25) {
-            textOffset = mapLinear(mouseAngle, 0, 0.25, textDistanceX, this.textDistanceY);
+            textOffset = mapLinear(mouseAngle, 0, 0.25, infoDistanceX, this.infoDistanceY);
         } else if (mouseAngle >= 0.25 && mouseAngle < 0.5) {
-            textOffset = mapLinear(mouseAngle, 0.25, 0.5, this.textDistanceY, textDistanceX);
+            textOffset = mapLinear(mouseAngle, 0.25, 0.5, this.infoDistanceY, infoDistanceX);
         } else if (mouseAngle >= 0.5 && mouseAngle < 0.75) {
-            textOffset = mapLinear(mouseAngle, 0.5, 0.75, textDistanceX, this.textDistanceY);
+            textOffset = mapLinear(mouseAngle, 0.5, 0.75, infoDistanceX, this.infoDistanceY);
         } else if (mouseAngle >= 0.75 && mouseAngle <= 1) {
-            textOffset = mapLinear(mouseAngle, 0.75, 1, this.textDistanceY, textDistanceX);
+            textOffset = mapLinear(mouseAngle, 0.75, 1, this.infoDistanceY, infoDistanceX);
         }
 
         return textOffset;
@@ -815,7 +815,7 @@ export class RadialGraphSegments extends Interface {
 
             const c = Math.cos(angle);
             const s = Math.sin(angle);
-            const r0 = this.radius - this.getTextOffset(this.mouseAngle, this.textDistanceX);
+            const r0 = this.radius - this.getTextOffset(this.mouseAngle, this.infoDistanceX);
             const r1 = this.radius;
             const r2 = radius - 2;
             const r3 = radius;

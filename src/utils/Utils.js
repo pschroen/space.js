@@ -138,13 +138,13 @@ export function peaks(numbers, chunkSize, threshold) {
 
 export function consecutive(numbers) {
     return numbers.reduce((array, value) => {
-        const group = array[array.length - 1];
+        let group = array[array.length - 1];
 
         if (!group || group[group.length - 1] !== value - 1) {
-            array.push([]);
+            group = array[array.push([]) - 1];
         }
 
-        array[array.length - 1].push(value);
+        group.push(value);
 
         return array;
     }, []);

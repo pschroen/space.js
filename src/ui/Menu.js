@@ -7,12 +7,14 @@ import { MenuItem } from './MenuItem.js';
 
 export class Menu extends Interface {
     constructor({
+        itemWidth,
         items,
         active,
         callback
     }) {
         super('.menu');
 
+        this.itemWidth = itemWidth;
         this.names = items;
         this.index = this.names.indexOf(active);
         this.callback = callback;
@@ -40,7 +42,7 @@ export class Menu extends Interface {
 
     initViews() {
         this.names.forEach((name, index) => {
-            const item = new MenuItem({ name, index });
+            const item = new MenuItem({ width: this.itemWidth, name, index });
             item.events.on('click', this.onClick);
             this.add(item);
             this.items.push(item);

@@ -6,11 +6,13 @@ import { Interface } from '../utils/Interface.js';
 
 export class MenuItem extends Interface {
     constructor({
+        width,
         name,
         index
     }) {
         super('.item');
 
+        this.width = width;
         this.name = name;
         this.index = index;
 
@@ -25,6 +27,10 @@ export class MenuItem extends Interface {
     init() {
         this.css({
             position: 'relative',
+            width: this.width || 'fit-content',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             cursor: 'pointer',
             pointerEvents: 'none',
             webkitUserSelect: 'none',
@@ -35,6 +41,7 @@ export class MenuItem extends Interface {
         this.container = new Interface('.container');
         this.container.css({
             position: 'relative',
+            width: 'fit-content',
             padding: 10,
             textAlign: 'center',
             textTransform: 'uppercase',

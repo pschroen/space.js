@@ -136,6 +136,20 @@ export function peaks(numbers, chunkSize, threshold) {
     return peaks;
 }
 
+export function consecutive(numbers) {
+    return numbers.reduce((array, value) => {
+        const group = array[array.length - 1];
+
+        if (!group || group[group.length - 1] !== value - 1) {
+            array.push([]);
+        }
+
+        array[array.length - 1].push(value);
+
+        return array;
+    }, []);
+}
+
 export function shuffle(array) {
     return array.sort(() => Math.random() - 0.5);
 }

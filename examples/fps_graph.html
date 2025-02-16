@@ -177,7 +177,7 @@
                     if (time - 1000 > value) {
                         value = time;
 
-                        // Passing an array to item.update() will update the entire graph
+                        // Passing an array to `item.update()` will update the entire graph
                         const array = Array.from({ length: 10 }, () => Math.random());
                         item.update(array);
                     } else {
@@ -201,7 +201,7 @@
                     if (needsUpdate) {
                         needsUpdate = false;
 
-                        // Passing an array to item.update() will update the entire graph
+                        // Passing an array to `item.update()` will update the entire graph
                         value = Array.from({ length: 10 }, () => Math.random());
                         item.update(value);
                     } else {

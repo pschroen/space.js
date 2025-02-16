@@ -35,7 +35,7 @@
         import { BoxGeometry, Color, Group, HemisphereLight, MathUtils, Mesh, MeshNormalMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        import { EventEmitter, Interface, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, delayedCall, lerpCameras, median, ticker, tween } from '../../src/three.js';
+        import { EventEmitter, Interface, Menu, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, delayedCall, lerpCameras, median, ticker, tween } from '../../src/three.js';
 
         const isDebug = /[?&]debug/.test(location.search);
 
@@ -665,14 +665,30 @@
             }
 
             static addListeners() {
-                this.thread.on('details', this.onDetails);
-                this.thread.on('data', this.onData);
-                this.thread.on('status', this.onStatus);
+                Stage.events.on('details', this.onDetails);
+                Stage.events.on('ui', this.onUI);
+                this.thread.on('details', this.onServerDetails);
+                this.thread.on('data', this.onServerData);
+                this.thread.on('status', this.onServerStatus);
             }
 
             // Event handlers
 
-            static onDetails = ({
+            static onDetails = ({ open }) => {
+                if (open) {
+                    this.menu.animateIn();
+                } else {
+                    this.menu.animateOut();
+                }
+            };
+
+            static onUI = ({ open }) => {
+                if (!open) {
+                    this.menu.animateOut();
+                }
+            };
+
+            static onServerDetails = ({
                 projectDomain,
                 networkName,
                 serverVersion,
@@ -864,6 +880,29 @@
                     this.ui.css({ position: 'static' });
                     this.ui.details.css({ minWidth: 220 });
                     this.ui.animateIn();
+
+                    this.container = new Interface('.container');
+                    this.container.css({
+                        position: 'fixed',
+                        left: '50vw',
+                        top: 0,
+                        width: '50vw',
+                        height: '100%',
+                        pointerEvents: 'none'
+                    });
+                    this.ui.add(this.container);
+
+                    this.menu = new Menu({
+                        bottom: true,
+                        itemWidth: 74,
+                        items: ['Latency', 'Load', 'Uptime'],
+                        // items: ['Uptime', 'Load', 'Clients'],
+                        active: 'Load'
+                    });
+                    this.menu.css({ position: 'absolute' });
+                    this.menu.events.on('update', this.onMenu);
+                    this.container.add(this.menu);
+
                     document.body.appendChild(this.ui.element);
 
                     this.ui.detailsUptime = this.ui.details.content[2].children[1];
@@ -893,6 +932,8 @@
                     this.initPanel();
 
                     Stage.events.emit('start');
+                    window.addEventListener('keyup', this.onKeyUp);
+                    window.dispatchEvent(new Event('resize'));
                 } else {
                     this.ui.detailsNumClients.html(numClients);
 
@@ -907,7 +948,7 @@
                 }
             };
 
-            static onData = ({ latencyAvgData, loadAvgData, serverUptimeData }) => {
+            static onServerData = ({ latencyAvgData, loadAvgData, serverUptimeData }) => {
                 this.latencyAvgData = new GraphData();
                 this.latencyAvgData.setArrays(latencyAvgData);
 
@@ -930,7 +971,7 @@
                 this.view.serverUptimeGraph.setArray([...this.serverUptimeData.smallArray.toReversed(), ...this.serverUptimeData.largeArray.toReversed()]);
             };
 
-            static onStatus = ({ serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
+            static onServerStatus = ({ serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
                 if (this.serverUptimeData && serverUptime !== undefined) {
                     this.serverUptimeData.update(serverUptime);
 
@@ -990,7 +1031,24 @@
                 }
             };
 
+            static onMenu = ({ index }) => {
+                this.view.graph.setIndex(index);
+            };
+
+            static onKeyUp = e => {
+                if (e.ctrlKey && e.keyCode >= 55 && e.keyCode <= 57) { // Ctrl 7-9
+                    this.menu.index = e.keyCode - 55;
+                    this.menu.update();
+                }
+            };
+
             // Public methods
+
+            static resize = (width, height, dpr) => {
+                if (this.ui) {
+                    this.menu.resize(width, height, dpr, this.ui.breakpoint);
+                }
+            };
 
             static update = () => {
                 if (this.ui) {
@@ -1227,6 +1285,7 @@
 
                 WorldController.resize(width, height, dpr);
                 CameraController.resize(width, height);
+                ServerStatusController.resize(width, height, dpr);
             };
 
             static onUpdate = (time, delta, frame) => {

@@ -93,15 +93,7 @@ export class Thread extends EventEmitter {
     }
 
     createMethod(name) {
-        this[name] = (message = {}, callback) => {
-            const promise = new Promise(resolve => this.send(name, message, resolve));
-
-            if (callback) {
-                promise.then(callback);
-            }
-
-            return promise;
-        };
+        this[name] = (message = {}) => new Promise(resolve => this.send(name, message, resolve));
     }
 
     addListeners() {

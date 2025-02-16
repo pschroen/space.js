@@ -120,12 +120,12 @@ export function peaks(numbers, chunkSize, threshold) {
     const peaks = [];
 
     for (let i = 0; i < length; i++) {
-        const start = Math.max(0, i - chunkSize);
+        const start = Math.max(1, i - chunkSize);
         const end = Math.min(length, i + chunkSize);
         let sum = 0;
 
         for (let j = start; j < end; j++) {
-            sum += Math.abs(numbers[j - 1] - numbers[j]);
+            sum += Math.abs(numbers[j] - numbers[j - 1]);
         }
 
         if (sum > threshold) {

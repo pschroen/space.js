@@ -91,6 +91,7 @@ export { RadialGraphCanvas } from './ui/RadialGraphCanvas.js';
 export { RadialGraphSegments } from './ui/RadialGraphSegments.js';
 export { RadialGraphSegmentsCanvas } from './ui/RadialGraphSegmentsCanvas.js';
 export { RadialGraphTracker } from './ui/RadialGraphTracker.js';
+export { RadialGraphContainer } from './ui/RadialGraphContainer.js';
 export { Meter } from './ui/Meter.js';
 export { LineCanvas } from './ui/LineCanvas.js';
 export { Reticle } from './ui/Reticle.js';

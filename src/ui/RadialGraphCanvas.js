@@ -97,6 +97,7 @@ export class RadialGraphCanvas extends Interface {
         this.hoveredIn = false;
         this.graphNeedsUpdate = false;
         this.initialized = false;
+        this.enabled = true;
 
         if (this.startAngle < 0) {
             this.startAngle += TwoPI;
@@ -496,12 +497,10 @@ export class RadialGraphCanvas extends Interface {
         }
 
         this.css({
-            left: this.position.x,
-            top: this.position.y,
+            left: this.position.x - this.halfWidth,
+            top: this.position.y - this.halfHeight,
             width: this.width,
-            height: this.height,
-            marginLeft: -this.halfWidth,
-            marginTop: -this.halfHeight
+            height: this.height
         });
     }
 
@@ -538,6 +537,10 @@ export class RadialGraphCanvas extends Interface {
     }
 
     update(value) {
+        if (!this.enabled) {
+            return;
+        }
+
         if (value !== undefined) {
             if (Array.isArray(value)) {
                 this.setArray(value);

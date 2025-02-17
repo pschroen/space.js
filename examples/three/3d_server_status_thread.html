@@ -144,7 +144,7 @@
 
             getPeaks = threshold => {
                 // Past 12hrs (10744 status updates)
-                const groups = consecutive(peaks(this.data.slice(-10744), this.largeChunkSize / 2, threshold));
+                const groups = consecutive(peaks(this.data.slice(-10744), 10, threshold));
 
                 return groups.map(array => array[0] / 10744); // First index normalized
             };
@@ -989,7 +989,7 @@
                 this.view.serverUptimeGraph.setGhostArray([...this.serverUptimeData.smallGhostArray.toReversed(), ...this.serverUptimeData.largeGhostArray.toReversed()]);
                 this.view.serverUptimeGraph.setArray([...this.serverUptimeData.smallArray.toReversed(), ...this.serverUptimeData.largeArray.toReversed()]);
 
-                let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 20000 });
+                let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 900 }); // 15 minute threshold
                 peaks = peaks.map(value => 1 - value); // reversed
                 peaks.forEach(angle => this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'])); // 0.875 segment ratio
             };

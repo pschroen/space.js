@@ -50,6 +50,7 @@ export class GraphSegments extends Interface {
         markers = [],
         range = 1,
         suffix = '',
+        format = value => `${value}${suffix}`,
         noHover = false,
         noMarker = false,
         noMarkerDrag = false,
@@ -69,7 +70,7 @@ export class GraphSegments extends Interface {
         this.labels = labels;
         this.markers = markers;
         this.range = range;
-        this.suffix = suffix;
+        this.format = format;
         this.noHover = noHover;
         this.noMarker = noMarker;
         this.noMarkerDrag = noMarkerDrag;
@@ -738,7 +739,7 @@ export class GraphSegments extends Interface {
             this.context.stroke();
 
             this.info.css({ left: x });
-            this.info.text(`${value.toFixed(this.precision)}${this.suffix}`);
+            this.info.text(this.format(value.toFixed(this.precision)));
         }
     }
 

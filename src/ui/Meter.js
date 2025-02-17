@@ -36,6 +36,7 @@ export class Meter extends Interface {
         precision = 0,
         range = 1,
         suffix = '',
+        format = value => `${value}${suffix}`,
         noRange = false,
         noText = false,
         noGradient = false
@@ -47,7 +48,7 @@ export class Meter extends Interface {
         this.width = width;
         this.precision = precision;
         this.range = range;
-        this.suffix = suffix;
+        this.format = format;
         this.noRange = noRange;
         this.noText = noText;
         this.noGradient = noGradient;
@@ -145,7 +146,7 @@ export class Meter extends Interface {
                         pointerEvents: 'none',
                         opacity: 0
                     });
-                    this.info.text(`${Number(0).toFixed(this.precision)}${this.suffix}`); // Min value
+                    this.info.text(this.format(Number(0).toFixed(this.precision))); // Min value
                     this.info.width = 0;
                     this.add(this.info);
 
@@ -205,7 +206,7 @@ export class Meter extends Interface {
         this.rangeWidth = this.getRangeWidth(this.range);
 
         if (this.number) {
-            this.number.text(`${this.range.toFixed(this.precision)}${this.suffix}`);
+            this.number.text(this.format(this.range.toFixed(this.precision)));
         }
 
         this.needsUpdate = true;
@@ -241,7 +242,7 @@ export class Meter extends Interface {
                 this.info.css({ right: x });
             }
 
-            this.info.text(`${this.value.toFixed(this.precision)}${this.suffix}`);
+            this.info.text(this.format(this.value.toFixed(this.precision)));
         }
 
         this.needsUpdate = true;

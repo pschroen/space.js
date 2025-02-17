@@ -16,6 +16,7 @@ export class PanelMeter extends Interface {
         precision = 0,
         range = 1,
         suffix = '',
+        format = value => `${value}${suffix}`,
         value,
         ghost,
         noText = false,
@@ -27,7 +28,7 @@ export class PanelMeter extends Interface {
         this.name = name;
         this.precision = precision;
         this.range = range;
-        this.suffix = suffix;
+        this.format = format;
         this.value = value;
         this.ghost = ghost;
         this.noText = noText;
@@ -124,7 +125,7 @@ export class PanelMeter extends Interface {
                 zIndex: 1,
                 pointerEvents: 'none'
             });
-            this.info.text(`${Number(0).toFixed(this.precision)}${this.suffix}`); // Min value
+            this.info.text(this.format(Number(0).toFixed(this.precision))); // Min value
             this.info.width = 0;
             this.add(this.info);
 
@@ -222,7 +223,7 @@ export class PanelMeter extends Interface {
         this.rangeWidth = this.getRangeWidth(this.range);
 
         if (this.number) {
-            this.number.text(`${this.range.toFixed(this.precision)}${this.suffix}`);
+            this.number.text(this.format(this.range.toFixed(this.precision)));
         }
 
         this.needsUpdate = true;
@@ -255,7 +256,7 @@ export class PanelMeter extends Interface {
             }
 
             this.info.css({ right: x });
-            this.info.text(`${this.value.toFixed(this.precision)}${this.suffix}`);
+            this.info.text(this.format(this.value.toFixed(this.precision)));
         }
 
         this.needsUpdate = true;

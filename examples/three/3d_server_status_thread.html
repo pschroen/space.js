@@ -39,6 +39,33 @@
 
         const isDebug = /[?&]debug/.test(location.search);
 
+        class Utils {
+            // https://stackoverflow.com/questions/36098913/convert-seconds-to-days-hours-minutes-and-seconds/52387803#52387803
+            static formatSeconds(seconds) {
+                seconds = Number(seconds);
+
+                const d = Math.floor(seconds / 86400);
+                const h = Math.floor(seconds % 86400 / 3600);
+                const m = Math.floor(seconds % 3600 / 60);
+                const s = Math.floor(seconds % 60);
+
+                const daysFormatted = d > 0 ? `${d}${(d === 1 ? ' day ' : ' days ')}` : '';
+                const hoursFormatted = h > 0 ? `${h}${(h === 1 ? ' hour ' : ' hours ')}` : '';
+                const minutesFormatted = m > 0 ? `${m}${(m === 1 ? ' minute ' : ' minutes ')}` : '';
+                const secondsFormatted = `${s}${(s === 1 ? ' second' : ' seconds')}`;
+
+                return `${daysFormatted}${hoursFormatted}${minutesFormatted}${secondsFormatted}`;
+            }
+
+            static formatInfoSeconds(seconds) {
+                seconds = Number(seconds);
+                if (seconds < 60) return 'now';
+                if (seconds < 3600) return `${Math.floor(seconds % 3600 / 60)}min`;
+                if (seconds < 86400) return `${Math.floor(seconds % 86400 / 3600)}h`;
+                return `${Math.floor(seconds / 86400)}d`;
+            }
+        }
+
         class Data {
             static init({ projectDomain, networkName }) {
                 this.projectDomain = projectDomain;
@@ -348,19 +375,7 @@
                         }
 
                         const serverUptime = data[1];
-
-                        // https://stackoverflow.com/questions/36098913/convert-seconds-to-days-hours-minutes-and-seconds/52387803#52387803
-                        const days = Math.floor(serverUptime / (3600 * 24));
-                        const hours = Math.floor(serverUptime % (3600 * 24) / 3600);
-                        const minutes = Math.floor(serverUptime % 3600 / 60);
-                        const seconds = Math.floor(serverUptime % 60);
-
-                        const daysFormatted = days > 0 ? days + (days === 1 ? ' day ' : ' days ') : '';
-                        const hoursFormatted = hours > 0 ? hours + (hours === 1 ? ' hour ' : ' hours ') : '';
-                        const minutesFormatted = minutes > 0 ? minutes + (minutes === 1 ? ' minute ' : ' minutes ') : '';
-                        const secondsFormatted = seconds > 0 ? seconds + (seconds === 1 ? ' second' : ' seconds') : '';
-
-                        const serverUptimeFormatted = daysFormatted + hoursFormatted + minutesFormatted + secondsFormatted;
+                        const serverUptimeFormatted = Utils.formatSeconds(serverUptime);
 
                         let latencyAvg;
 
@@ -583,9 +598,8 @@
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['Uptime', '12hrs'],
                         range: 60000, // ~16hrs in seconds
-                        infoDistanceX: 30,
                         labelDistance: 30,
-                        suffix: 's',
+                        format: Utils.formatInfoSeconds,
                         noMarkerDrag: true
                     });
                     object.graph.add(object.serverUptimeGraph);
@@ -671,7 +685,7 @@
                         // ['../../src/three.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
                         ['../../src/index.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
                     ],
-                    classes: [GraphData, Socket],
+                    classes: [Utils, GraphData, Socket],
                     controller: [SocketThread, 'init', 'getPeaks']
                 });
                 this.thread.init({ server });

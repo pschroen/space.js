@@ -56,6 +56,7 @@ export class RadialGraphSegments extends Interface {
         infoDistanceY = 10,
         labelDistance = 0,
         suffix = '',
+        format = value => `${value}${suffix}`,
         noHover = false,
         noMarker = false,
         noMarkerDrag = false,
@@ -81,7 +82,7 @@ export class RadialGraphSegments extends Interface {
         this.infoDistanceX = infoDistanceX;
         this.infoDistanceY = infoDistanceY;
         this.labelDistance = labelDistance;
-        this.suffix = suffix;
+        this.format = format;
         this.noHover = noHover;
         this.noMarker = noMarker;
         this.noMarkerDrag = noMarkerDrag;
@@ -849,7 +850,7 @@ export class RadialGraphSegments extends Interface {
             this.context.stroke();
 
             this.info.css({ left: x0, top: y0 });
-            this.info.text(`${value.toFixed(this.precision)}${this.suffix}`);
+            this.info.text(this.format(value.toFixed(this.precision)));
         }
     }
 

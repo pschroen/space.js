@@ -50,6 +50,7 @@ export class RadialGraph extends Interface {
         infoDistanceX = 20,
         infoDistanceY = 10,
         suffix = '',
+        format = value => `${value}${suffix}`,
         noHover = false,
         noMarker = false,
         noMarkerDrag = false,
@@ -71,7 +72,7 @@ export class RadialGraph extends Interface {
         this.range = range;
         this.infoDistanceX = infoDistanceX;
         this.infoDistanceY = infoDistanceY;
-        this.suffix = suffix;
+        this.format = format;
         this.noHover = noHover;
         this.noMarker = noMarker;
         this.noMarkerDrag = noMarkerDrag;
@@ -746,7 +747,7 @@ export class RadialGraph extends Interface {
             this.context.stroke();
 
             this.info.css({ left: x0, top: y0 });
-            this.info.text(`${value.toFixed(this.precision)}${this.suffix}`);
+            this.info.text(this.format(value.toFixed(this.precision)));
         }
     }
 

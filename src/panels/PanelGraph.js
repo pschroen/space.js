@@ -21,6 +21,7 @@ export class PanelGraph extends Interface {
         lookupPrecision = 0,
         range = 1,
         suffix = '',
+        format = value => `${value}${suffix}`,
         value,
         ghost,
         noText = false,
@@ -36,7 +37,7 @@ export class PanelGraph extends Interface {
         this.precision = precision;
         this.lookupPrecision = lookupPrecision;
         this.range = range;
-        this.suffix = suffix;
+        this.format = format;
         this.value = value;
         this.ghost = ghost;
         this.noText = noText;
@@ -495,7 +496,7 @@ export class PanelGraph extends Interface {
             this.context.stroke();
 
             this.info.css({ left: x });
-            this.info.text(`${value.toFixed(this.precision)}${this.suffix}`);
+            this.info.text(this.format(value.toFixed(this.precision)));
         }
     }
 

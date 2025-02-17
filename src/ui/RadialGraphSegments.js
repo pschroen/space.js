@@ -54,7 +54,7 @@ export class RadialGraphSegments extends Interface {
         range = 1,
         infoDistanceX = 20,
         infoDistanceY = 10,
-        labelDistance = 0,
+        labelDistance = 30,
         suffix = '',
         format = value => `${value}${suffix}`,
         noHover = false,
@@ -492,6 +492,28 @@ export class RadialGraphSegments extends Interface {
         return name;
     }
 
+    setData(data) {
+        if (!this.label) {
+            this.label = new Interface('.label');
+            this.label.invisible();
+            this.label.css({
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                transform: 'translate(-50%, -50%)',
+                fontSize: 'const(--ui-secondary-font-size)',
+                letterSpacing: 'const(--ui-secondary-letter-spacing)',
+                color: 'var(--ui-secondary-color)',
+                whiteSpace: 'nowrap',
+                zIndex: 1,
+                opacity: 0
+            });
+            this.add(this.label);
+        }
+
+        this.data = data;
+    }
+
     setHover(type = 'out') {
         if (this.isDraggingAway) {
             return;
@@ -710,7 +732,7 @@ export class RadialGraphSegments extends Interface {
 
             if (this.labels[i]) {
                 const angle = this.startAngle + (start + slice / 2) * TwoPI;
-                const radius = this.middle + (this.labelDistance || this.getTextOffset(angle % TwoPI / TwoPI, this.labels[i].width / 2 + 10));
+                const radius = this.middle + this.labelDistance;
                 const x = this.middle + radius * Math.cos(angle);
                 const y = this.middle + radius * Math.sin(angle);
 
@@ -851,6 +873,16 @@ export class RadialGraphSegments extends Interface {
 
             this.info.css({ left: x0, top: y0 });
             this.info.text(this.format(value.toFixed(this.precision)));
+
+            if (this.label && this.data[i] && this.data[i].length) {
+                const value = this.data[i][Math.floor(segmentAngle * this.data[i].length)];
+                const radius = this.middle + this.labelDistance;
+                const x = this.middle + radius * Math.cos(angle);
+                const y = this.middle + radius * Math.sin(angle);
+
+                this.label.css({ left: x, top: y });
+                this.label.text(value);
+            }
         }
     }
 
@@ -1063,6 +1095,12 @@ export class RadialGraphSegments extends Interface {
         this.info.visible();
         this.info.tween({ opacity: 1 }, 275, 'easeInOutCubic');
 
+        if (this.label) {
+            this.label.clearTween();
+            this.label.visible();
+            this.label.tween({ opacity: 1 }, 275, 'easeInOutCubic');
+        }
+
         this.hoveredIn = true;
     }
 
@@ -1073,12 +1111,21 @@ export class RadialGraphSegments extends Interface {
 
         this.info.clearTween();
 
+        if (this.label) {
+            this.label.clearTween();
+        }
+
         if (fast) {
             this.handleProps.alpha = 0;
             this.needsUpdate = true;
 
             this.info.css({ opacity: 0 });
             this.info.invisible();
+
+            if (this.label) {
+                this.label.css({ opacity: 0 });
+                this.label.invisible();
+            }
         } else {
             tween(this.handleProps, { alpha: 0 }, 275, 'easeInOutCubic', null, () => {
                 this.needsUpdate = true;
@@ -1087,6 +1134,12 @@ export class RadialGraphSegments extends Interface {
             this.info.tween({ opacity: 0 }, 275, 'easeInOutCubic', () => {
                 this.info.invisible();
             });
+
+            if (this.label) {
+                this.label.tween({ opacity: 0 }, 275, 'easeInOutCubic', () => {
+                    this.label.invisible();
+                });
+            }
         }
 
         this.hoveredIn = false;

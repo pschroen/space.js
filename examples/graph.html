@@ -96,6 +96,7 @@
             ratio: [0.45, 0.45, 0.1], // normalized ratio of each segment
             labels: ['Segment 1', 'Segment 2', 'Segment 3']
         });
+        graph6.setData([Array.from({ length: 10 }, (_, i) => i + 1), Array.from({ length: 10 }, (_, i) => i + 1), []]);
         graph6.setSize(document.documentElement.clientWidth * 0.74, clamp(mapLinear(document.documentElement.clientHeight, 600, 1000, 40, 80), 40, 80));
         graph6.animateIn();
         document.body.appendChild(graph6.element);

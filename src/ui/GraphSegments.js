@@ -459,6 +459,28 @@ export class GraphSegments extends Interface {
         return name;
     }
 
+    setData(data) {
+        if (!this.label) {
+            this.label = new Interface('.label');
+            this.label.invisible();
+            this.label.css({
+                position: 'absolute',
+                left: 0,
+                top: -12,
+                transform: 'translate(-50%, -50%)',
+                fontSize: 'const(--ui-secondary-font-size)',
+                letterSpacing: 'const(--ui-secondary-letter-spacing)',
+                color: 'var(--ui-secondary-color)',
+                whiteSpace: 'nowrap',
+                zIndex: 1,
+                opacity: 0
+            });
+            this.add(this.label);
+        }
+
+        this.data = data;
+    }
+
     setArray(value) {
         if (Array.isArray(value)) {
             this.array = value;
@@ -740,6 +762,13 @@ export class GraphSegments extends Interface {
 
             this.info.css({ left: x });
             this.info.text(this.format(value.toFixed(this.precision)));
+
+            if (this.label && this.data[i] && this.data[i].length) {
+                const value = this.data[i][Math.floor(segmentX * this.data[i].length)];
+
+                this.label.css({ left: x });
+                this.label.text(value);
+            }
         }
     }
 
@@ -839,6 +868,12 @@ export class GraphSegments extends Interface {
         this.info.visible();
         this.info.tween({ opacity: 1 }, 275, 'easeInOutCubic');
 
+        if (this.label) {
+            this.label.clearTween();
+            this.label.visible();
+            this.label.tween({ opacity: 1 }, 275, 'easeInOutCubic');
+        }
+
         this.hoveredIn = true;
     }
 
@@ -847,12 +882,21 @@ export class GraphSegments extends Interface {
 
         this.info.clearTween();
 
+        if (this.label) {
+            this.label.clearTween();
+        }
+
         if (fast) {
             this.handleProps.alpha = 0;
             this.needsUpdate = true;
 
             this.info.css({ opacity: 0 });
             this.info.invisible();
+
+            if (this.label) {
+                this.label.css({ opacity: 0 });
+                this.label.invisible();
+            }
         } else {
             tween(this.handleProps, { alpha: 0 }, 275, 'easeInOutCubic', null, () => {
                 this.needsUpdate = true;
@@ -861,6 +905,12 @@ export class GraphSegments extends Interface {
             this.info.tween({ opacity: 0 }, 275, 'easeInOutCubic', () => {
                 this.info.invisible();
             });
+
+            if (this.label) {
+                this.label.tween({ opacity: 0 }, 275, 'easeInOutCubic', () => {
+                    this.label.invisible();
+                });
+            }
         }
 
         this.hoveredIn = false;

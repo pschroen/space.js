@@ -35,7 +35,7 @@
         import { BoxGeometry, Color, Group, HemisphereLight, MathUtils, Mesh, MeshNormalMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        import { EventEmitter, Interface, Menu, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, delayedCall, lerpCameras, median, ticker, tween } from '../../src/three.js';
+        import { EventEmitter, Interface, Menu, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, consecutive, delayedCall, lerpCameras, median, peaks, ticker, tween } from '../../src/three.js';
 
         const isDebug = /[?&]debug/.test(location.search);
 
@@ -140,6 +140,13 @@
                 this.smallArray = smallArray;
                 this.realtimeGhostArray = realtimeGhostArray;
                 this.realtimeArray = realtimeArray;
+            };
+
+            getPeaks = threshold => {
+                // Past 12hrs (10744 status updates)
+                const groups = consecutive(peaks(this.data.slice(-10744), this.largeChunkSize / 2, threshold));
+
+                return groups.map(array => array[0] / 10744); // First index normalized
             };
 
             update = value => {
@@ -316,21 +323,21 @@
                             const last = data.pop();
 
                             // Latency average data (initially no data, all 0s)
-                            const latencyAvgData = new GraphData();
-                            latencyAvgData.setData(new Array(data.length).fill(0));
+                            this.latencyAvgData = new GraphData();
+                            this.latencyAvgData.setData(new Array(data.length).fill(0));
 
                             // Load average data
-                            const loadAvgData = new GraphData();
-                            loadAvgData.setData(data.map(data => data[2] * 100)); // percentage
+                            this.loadAvgData = new GraphData();
+                            this.loadAvgData.setData(data.map(data => data[2] * 100)); // percentage
 
                             // Server uptime data
-                            const serverUptimeData = new GraphData();
-                            serverUptimeData.setData(data.map(data => data[1])); // server uptime in seconds
+                            this.serverUptimeData = new GraphData();
+                            this.serverUptimeData.setData(data.map(data => data[1])); // server uptime in seconds
 
                             this.emit('data', {
-                                latencyAvgData: latencyAvgData.getArrays(),
-                                loadAvgData: loadAvgData.getArrays(),
-                                serverUptimeData: serverUptimeData.getArrays()
+                                latencyAvgData: this.latencyAvgData.getArrays(),
+                                loadAvgData: this.loadAvgData.getArrays(),
+                                serverUptimeData: this.serverUptimeData.getArrays()
                             });
 
                             data = last;
@@ -371,6 +378,10 @@
             };
 
             // Public methods
+
+            getPeaks = (name, threshold) => {
+                return this[name].getPeaks(threshold);
+            };
 
             send = data => {
                 if (!this.connected) {
@@ -441,6 +452,10 @@
                 this.socket.on('details', this.onDetails);
                 this.socket.on('data', this.onData);
                 this.socket.on('status', this.onStatus);
+            };
+
+            getPeaks = ({ name, threshold, id }) => {
+                postMessage({ id, message: this.socket.getPeaks(name, threshold) });
             };
         }
 
@@ -538,7 +553,7 @@
                         range: 300,
                         labelDistance: 30,
                         suffix: 'ms',
-                        noMarker: true
+                        noMarkerDrag: true
                     });
                     object.graph.add(object.latencyAvgGraph);
 
@@ -554,7 +569,7 @@
                         range: 400,
                         labelDistance: 30,
                         suffix: '%',
-                        noMarker: true
+                        noMarkerDrag: true
                     });
                     object.graph.add(object.loadAvgGraph);
 
@@ -571,7 +586,7 @@
                         infoDistanceX: 30,
                         labelDistance: 30,
                         suffix: 's',
-                        noMarker: true
+                        noMarkerDrag: true
                     });
                     object.graph.add(object.serverUptimeGraph);
 
@@ -653,11 +668,11 @@
                 this.thread = new Thread({
                     imports: [
                         // TODO: Investigate why the `three` entry point fails
-                        // ['../../src/three.js', 'EventEmitter', 'average', 'delayedCall', 'median']
-                        ['../../src/index.js', 'EventEmitter', 'average', 'delayedCall', 'median']
+                        // ['../../src/three.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
+                        ['../../src/index.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
                     ],
                     classes: [GraphData, Socket],
-                    controller: [SocketThread, 'init']
+                    controller: [SocketThread, 'init', 'getPeaks']
                 });
                 this.thread.init({ server });
             }
@@ -952,7 +967,7 @@
                 }
             };
 
-            static onServerData = ({ latencyAvgData, loadAvgData, serverUptimeData }) => {
+            static onServerData = async ({ latencyAvgData, loadAvgData, serverUptimeData }) => {
                 this.latencyAvgData = new GraphData();
                 this.latencyAvgData.setArrays(latencyAvgData);
 
@@ -973,6 +988,10 @@
 
                 this.view.serverUptimeGraph.setGhostArray([...this.serverUptimeData.smallGhostArray.toReversed(), ...this.serverUptimeData.largeGhostArray.toReversed()]);
                 this.view.serverUptimeGraph.setArray([...this.serverUptimeData.smallArray.toReversed(), ...this.serverUptimeData.largeArray.toReversed()]);
+
+                let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 20000 });
+                peaks = peaks.map(value => 1 - value); // reversed
+                peaks.forEach(angle => this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'])); // 0.875 segment ratio
             };
 
             static onServerStatus = ({ serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {

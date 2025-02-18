@@ -172,8 +172,8 @@ export class RadialGraphSegments extends Interface {
             this.initLabels();
         }
 
-        if (!this.noMarker) {
-            this.initMarkers();
+        if (!this.noMarker && this.markers.length) {
+            this.setMarkers(this.markers);
         }
 
         this.setArray(this.value);
@@ -327,12 +327,6 @@ export class RadialGraphSegments extends Interface {
             this.add(label);
 
             return label;
-        });
-    }
-
-    initMarkers() {
-        this.markers.forEach(data => {
-            this.addMarker(data);
         });
     }
 
@@ -490,6 +484,13 @@ export class RadialGraphSegments extends Interface {
         }
 
         return name;
+    }
+
+    setMarkers(markers) {
+        this.items.forEach(item => item.destroy());
+        this.items.length = 0;
+
+        markers.forEach(data => this.addMarker(data));
     }
 
     setData(data) {

@@ -133,8 +133,8 @@ export class RadialGraphCanvas extends Interface {
 
         this.init();
 
-        if (!this.noMarker) {
-            this.initMarkers();
+        if (!this.noMarker && this.markers.length) {
+            this.setMarkers(this.markers);
         }
 
         this.setArray(this.value);
@@ -250,12 +250,6 @@ export class RadialGraphCanvas extends Interface {
 
     toRGBA(color, alpha) {
         return `rgb(${Math.round(color.r * 255)} ${Math.round(color.g * 255)} ${Math.round(color.b * 255)} / ${alpha * this.alpha})`;
-    }
-
-    initMarkers() {
-        this.markers.forEach(data => {
-            this.addMarker(data);
-        });
     }
 
     addListeners() {
@@ -396,6 +390,13 @@ export class RadialGraphCanvas extends Interface {
         }
 
         return name;
+    }
+
+    setMarkers(markers) {
+        this.items.forEach(item => item.destroy());
+        this.items.length = 0;
+
+        markers.forEach(data => this.addMarker(data));
     }
 
     setHover(type = 'out') {

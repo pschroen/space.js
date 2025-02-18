@@ -1166,9 +1166,9 @@
                     data[0] = data[0] * 0.875; // 0.875 segment ratio
                     return data;
                 });
-                markers.forEach(data => this.view.latencyAvgGraph.addMarker(data));
-                markers.forEach(data => this.view.loadAvgGraph.addMarker(data));
-                markers.forEach(data => this.view.serverUptimeGraph.addMarker(data));
+                this.view.latencyAvgGraph.setMarkers(markers);
+                this.view.loadAvgGraph.setMarkers(markers);
+                this.view.serverUptimeGraph.setMarkers(markers);
 
                 let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 3600 }); // 1hr threshold
                 peaks = peaks.map(value => 1 - value); // reversed

@@ -74,12 +74,13 @@
                 this.graph3 = new Graph({
                     value: Array.from({ length: 10 }, () => Math.random()),
                     precision: 2,
-                    lookupPrecision: 200,
-                    markers: [ // An array of normalized positions
-                        [0.5, 'Marker 1'],
-                        [1, 'Drag me']
-                    ]
+                    lookupPrecision: 200
                 });
+                // An array of normalized positions
+                this.graph3.setMarkers([
+                    [0.5, 'Marker 1'],
+                    [1, 'Drag me']
+                ]);
                 document.body.appendChild(this.graph3.element);
 
                 this.ui = new UI({

@@ -212,8 +212,8 @@
                 // Past 12hrs (~10744 status updates)
                 this.array = data.slice(-10744);
 
-                // Last 320 status updates for small graph (160 + 160, ghost + array)
-                const smallData = data.slice(-320);
+                // Last 200 status updates for small graph (100 + 100, ghost + array)
+                const smallData = data.slice(-200);
 
                 // Last 20 status updates for realtime graph (10 + 10, ghost + array)
                 const realtimeData = data.slice(-20);
@@ -245,9 +245,9 @@
                     array.push(median(smallData.slice(i, i + chunkSize)));
                 }
 
-                // Last 320 status updates downsampled to 32 (16 + 16, ghost + array)
-                this.smallGhostArray = array.slice(0, 16);
-                this.smallArray = array.slice(-16);
+                // Last 200 status updates downsampled to 20 (10 + 10, ghost + array)
+                this.smallGhostArray = array.slice(0, 10);
+                this.smallArray = array.slice(-10);
 
                 // Reversed
                 this.largeGhostArrayReversed = this.largeGhostArray.toReversed();
@@ -715,10 +715,10 @@
                     object.latencyAvgGraph = new RadialGraphSegmentsCanvas({
                         start: -45,
                         graphHeight: 40,
-                        resolution: 70,
+                        resolution: 64,
                         tension: 12,
                         lookupPrecision: [25, 100],
-                        segments: [16, 54],
+                        segments: [10, 54],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['Latency', '12hrs'],
                         range: 300,
@@ -730,10 +730,10 @@
                     object.loadAvgGraph = new RadialGraphSegmentsCanvas({
                         start: -45,
                         graphHeight: 40,
-                        resolution: 70,
+                        resolution: 64,
                         tension: 6,
                         lookupPrecision: [25, 100],
-                        segments: [16, 54],
+                        segments: [10, 54],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['Load', '12hrs'],
                         range: 400,
@@ -745,10 +745,10 @@
                     object.serverUptimeGraph = new RadialGraphSegmentsCanvas({
                         start: -45,
                         graphHeight: 40,
-                        resolution: 70,
+                        resolution: 64,
                         tension: 12,
                         lookupPrecision: [25, 100],
-                        segments: [16, 54],
+                        segments: [10, 54],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['Uptime', '12hrs'],
                         range: 60000, // ~16hrs in seconds
@@ -1007,9 +1007,9 @@
                                             title: '',
                                             graph: {
                                                 suffix: '%',
-                                                resolution: 26,
+                                                resolution: 20,
                                                 lookupPrecision: [100, 0],
-                                                segments: [16, 10],
+                                                segments: [10, 10],
                                                 ratio: [0.9, 0.1],
                                                 range: 400,
                                                 width: 200,
@@ -1180,8 +1180,8 @@
                     this.serverUptimeData.update(serverUptime);
 
                     if (this.serverUptimeData.smallCounter === 0) {
-                        this.view.serverUptimeGraph.ghostArray.splice(0, 16, ...this.serverUptimeData.smallGhostArrayReversed);
-                        this.view.serverUptimeGraph.array.splice(0, 16, ...this.serverUptimeData.smallArrayReversed);
+                        this.view.serverUptimeGraph.ghostArray.splice(0, 10, ...this.serverUptimeData.smallGhostArrayReversed);
+                        this.view.serverUptimeGraph.array.splice(0, 10, ...this.serverUptimeData.smallArrayReversed);
                         this.view.serverUptimeGraph.needsUpdate = true;
                         this.view.serverUptimeGraph.graphNeedsUpdate = true;
                     }
@@ -1210,8 +1210,8 @@
                     this.latencyAvgData.update(latencyAvg);
 
                     if (this.latencyAvgData.smallCounter === 0) {
-                        this.view.latencyAvgGraph.ghostArray.splice(0, 16, ...this.latencyAvgData.smallGhostArrayReversed);
-                        this.view.latencyAvgGraph.array.splice(0, 16, ...this.latencyAvgData.smallArrayReversed);
+                        this.view.latencyAvgGraph.ghostArray.splice(0, 10, ...this.latencyAvgData.smallGhostArrayReversed);
+                        this.view.latencyAvgGraph.array.splice(0, 10, ...this.latencyAvgData.smallArrayReversed);
                         this.view.latencyAvgGraph.needsUpdate = true;
                         this.view.latencyAvgGraph.graphNeedsUpdate = true;
                     }
@@ -1235,12 +1235,12 @@
                     this.ui.detailsLoadAvgGraph.needsUpdate = true;
 
                     if (this.loadAvgData.smallCounter === 0) {
-                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 16, ...this.loadAvgData.smallGhostArray);
-                        this.ui.detailsLoadAvgGraph.array.splice(0, 16, ...this.loadAvgData.smallArray);
+                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 10, ...this.loadAvgData.smallGhostArray);
+                        this.ui.detailsLoadAvgGraph.array.splice(0, 10, ...this.loadAvgData.smallArray);
                         this.ui.detailsLoadAvgGraph.graphNeedsUpdate = true;
 
-                        this.view.loadAvgGraph.ghostArray.splice(0, 16, ...this.loadAvgData.smallGhostArrayReversed);
-                        this.view.loadAvgGraph.array.splice(0, 16, ...this.loadAvgData.smallArrayReversed);
+                        this.view.loadAvgGraph.ghostArray.splice(0, 10, ...this.loadAvgData.smallGhostArrayReversed);
+                        this.view.loadAvgGraph.array.splice(0, 10, ...this.loadAvgData.smallArrayReversed);
                         this.view.loadAvgGraph.needsUpdate = true;
                         this.view.loadAvgGraph.graphNeedsUpdate = true;
                     }

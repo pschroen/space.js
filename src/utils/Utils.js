@@ -115,13 +115,13 @@ export function median(numbers) {
     return sorted[middle];
 }
 
-export function peaks(numbers, chunkSize, threshold) {
+export function peaks(numbers, windowSize, threshold) {
     const length = numbers.length;
     const peaks = [];
 
     for (let i = 0; i < length; i++) {
-        const start = Math.max(1, i - chunkSize);
-        const end = Math.min(length, i + chunkSize);
+        const start = Math.max(1, i - windowSize);
+        const end = Math.min(length, i + windowSize);
         let sum = 0;
 
         for (let j = start; j < end; j++) {

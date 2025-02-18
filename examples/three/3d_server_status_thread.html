@@ -108,7 +108,8 @@
                 // Median downsample
                 this.largeChunkSize = 200;
                 this.smallChunkSize = 10;
-                this.realtimeCounter = 0;
+                this.largeCounter = 0;
+                this.smallCounter = 0;
             }
 
             // Public methods
@@ -221,7 +222,7 @@
                 this.realtimeArray = realtimeData.slice(-10);
 
                 // Small median downsample
-                if (++this.realtimeCounter === this.smallChunkSize) {
+                if (++this.smallCounter === this.smallChunkSize) {
                     const smallGhost = this.smallArray.shift();
                     this.smallArray.push(median(this.realtimeArray));
                     this.smallGhostArray.shift();
@@ -231,7 +232,21 @@
                     this.smallGhostArrayReversed = this.smallGhostArray.toReversed();
                     this.smallArrayReversed = this.smallArray.toReversed();
 
-                    this.realtimeCounter = 0;
+                    this.smallCounter = 0;
+                }
+
+                // Large median downsample
+                if (++this.largeCounter === this.largeChunkSize) {
+                    const largeGhost = this.largeArray.shift();
+                    this.largeArray.push(median(this.array.slice(-this.largeChunkSize)));
+                    this.largeGhostArray.shift();
+                    this.largeGhostArray.push(largeGhost);
+
+                    // Large reversed
+                    this.largeGhostArrayReversed = this.largeGhostArray.toReversed();
+                    this.largeArrayReversed = this.largeArray.toReversed();
+
+                    this.largeCounter = 0;
                 }
 
                 // Cleanup
@@ -1115,9 +1130,16 @@
                 if (this.serverUptimeData && serverUptime !== undefined) {
                     this.serverUptimeData.update(serverUptime);
 
-                    if (this.serverUptimeData.realtimeCounter === 0) {
+                    if (this.serverUptimeData.smallCounter === 0) {
                         this.view.serverUptimeGraph.ghostArray.splice(0, 16, ...this.serverUptimeData.smallGhostArrayReversed);
                         this.view.serverUptimeGraph.array.splice(0, 16, ...this.serverUptimeData.smallArrayReversed);
+                        this.view.serverUptimeGraph.needsUpdate = true;
+                        this.view.serverUptimeGraph.graphNeedsUpdate = true;
+                    }
+
+                    if (this.serverUptimeData.largeCounter === 0) {
+                        this.view.serverUptimeGraph.ghostArray.splice(-54, 54, ...this.serverUptimeData.largeGhostArrayReversed);
+                        this.view.serverUptimeGraph.array.splice(-54, 54, ...this.serverUptimeData.largeArrayReversed);
                         this.view.serverUptimeGraph.needsUpdate = true;
                         this.view.serverUptimeGraph.graphNeedsUpdate = true;
                     }
@@ -1138,9 +1160,16 @@
 
                     this.latencyAvgData.update(latencyAvg);
 
-                    if (this.latencyAvgData.realtimeCounter === 0) {
+                    if (this.latencyAvgData.smallCounter === 0) {
                         this.view.latencyAvgGraph.ghostArray.splice(0, 16, ...this.latencyAvgData.smallGhostArrayReversed);
                         this.view.latencyAvgGraph.array.splice(0, 16, ...this.latencyAvgData.smallArrayReversed);
+                        this.view.latencyAvgGraph.needsUpdate = true;
+                        this.view.latencyAvgGraph.graphNeedsUpdate = true;
+                    }
+
+                    if (this.latencyAvgData.largeCounter === 0) {
+                        this.view.latencyAvgGraph.ghostArray.splice(-54, 54, ...this.latencyAvgData.largeGhostArrayReversed);
+                        this.view.latencyAvgGraph.array.splice(-54, 54, ...this.latencyAvgData.largeArrayReversed);
                         this.view.latencyAvgGraph.needsUpdate = true;
                         this.view.latencyAvgGraph.graphNeedsUpdate = true;
                     }
@@ -1156,15 +1185,22 @@
                     this.ui.detailsLoadAvgGraph.array.splice(-10, 10, ...this.loadAvgData.realtimeArray);
                     this.ui.detailsLoadAvgGraph.needsUpdate = true;
 
-                    if (this.loadAvgData.realtimeCounter === 0) {
+                    if (this.loadAvgData.smallCounter === 0) {
+                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 16, ...this.loadAvgData.smallGhostArray);
+                        this.ui.detailsLoadAvgGraph.array.splice(0, 16, ...this.loadAvgData.smallArray);
+                        this.ui.detailsLoadAvgGraph.graphNeedsUpdate = true;
+
                         this.view.loadAvgGraph.ghostArray.splice(0, 16, ...this.loadAvgData.smallGhostArrayReversed);
                         this.view.loadAvgGraph.array.splice(0, 16, ...this.loadAvgData.smallArrayReversed);
                         this.view.loadAvgGraph.needsUpdate = true;
                         this.view.loadAvgGraph.graphNeedsUpdate = true;
+                    }
 
-                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 16, ...this.loadAvgData.smallGhostArray);
-                        this.ui.detailsLoadAvgGraph.array.splice(0, 16, ...this.loadAvgData.smallArray);
-                        this.ui.detailsLoadAvgGraph.graphNeedsUpdate = true;
+                    if (this.loadAvgData.largeCounter === 0) {
+                        this.view.loadAvgGraph.ghostArray.splice(-54, 54, ...this.loadAvgData.largeGhostArrayReversed);
+                        this.view.loadAvgGraph.array.splice(-54, 54, ...this.loadAvgData.largeArrayReversed);
+                        this.view.loadAvgGraph.needsUpdate = true;
+                        this.view.loadAvgGraph.graphNeedsUpdate = true;
                     }
 
                     this.ui.detailsLoadAvgGraph.update();

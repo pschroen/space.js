@@ -102,6 +102,7 @@ export class GraphSegments extends Interface {
         this.isDraggingAway = false;
         this.animatedIn = false;
         this.hoveredIn = false;
+        this.labelHoveredIn = false;
         this.needsUpdate = false;
         this.graphNeedsUpdate = false;
         this.initialized = false;
@@ -461,6 +462,10 @@ export class GraphSegments extends Interface {
     }
 
     setData(data) {
+        if (!data) {
+            return;
+        }
+
         if (!this.label) {
             this.label = new Interface('.label');
             this.label.invisible();
@@ -769,11 +774,19 @@ export class GraphSegments extends Interface {
             this.info.css({ left: x });
             this.info.text(this.format(value.toFixed(this.precision)));
 
-            if (this.label && this.data[i] && this.data[i].length) {
-                const value = this.data[i][Math.floor(segmentX * this.data[i].length)];
+            if (this.label) {
+                if (this.data[i] && this.data[i].length) {
+                    const value = this.data[i][Math.floor(segmentX * this.data[i].length)];
 
-                this.label.css({ left: x });
-                this.label.text(value);
+                    this.label.css({ left: x });
+                    this.label.text(value);
+
+                    if (this.hoveredIn && !this.labelHoveredIn) {
+                        this.hoverLabelIn();
+                    }
+                } else if (this.hoveredIn && this.labelHoveredIn) {
+                    this.hoverLabelOut();
+                }
             }
         }
     }
@@ -866,60 +879,67 @@ export class GraphSegments extends Interface {
     hoverIn() {
         clearTween(this.handleProps);
 
-        tween(this.handleProps, { alpha: 1 }, 275, 'easeInOutCubic', null, () => {
-            this.needsUpdate = true;
-        });
+        tween(this.handleProps, { alpha: 1 }, 275, 'easeInOutCubic');
 
         this.info.clearTween();
         this.info.visible();
         this.info.tween({ opacity: 1 }, 275, 'easeInOutCubic');
 
         if (this.label) {
-            this.label.clearTween();
-            this.label.visible();
-            this.label.tween({ opacity: 1 }, 275, 'easeInOutCubic');
+            this.hoverLabelIn();
         }
 
         this.hoveredIn = true;
     }
 
     hoverOut(fast) {
+        this.lastHover = 'out';
+
         clearTween(this.handleProps);
 
         this.info.clearTween();
 
-        if (this.label) {
-            this.label.clearTween();
-        }
-
         if (fast) {
             this.handleProps.alpha = 0;
-            this.needsUpdate = true;
 
             this.info.css({ opacity: 0 });
             this.info.invisible();
-
-            if (this.label) {
-                this.label.css({ opacity: 0 });
-                this.label.invisible();
-            }
         } else {
-            tween(this.handleProps, { alpha: 0 }, 275, 'easeInOutCubic', null, () => {
-                this.needsUpdate = true;
-            });
+            tween(this.handleProps, { alpha: 0 }, 275, 'easeInOutCubic');
 
             this.info.tween({ opacity: 0 }, 275, 'easeInOutCubic', () => {
                 this.info.invisible();
             });
+        }
 
-            if (this.label) {
-                this.label.tween({ opacity: 0 }, 275, 'easeInOutCubic', () => {
-                    this.label.invisible();
-                });
-            }
+        if (this.label) {
+            this.hoverLabelOut(fast);
         }
 
         this.hoveredIn = false;
+    }
+
+    hoverLabelIn() {
+        this.label.clearTween();
+        this.label.visible();
+        this.label.tween({ opacity: 1 }, 275, 'easeInOutCubic');
+
+        this.labelHoveredIn = true;
+    }
+
+    hoverLabelOut(fast) {
+        this.label.clearTween();
+
+        if (fast) {
+            this.label.css({ opacity: 0 });
+            this.label.invisible();
+        } else {
+            this.label.tween({ opacity: 0 }, 275, 'easeInOutCubic', () => {
+                this.label.invisible();
+            });
+        }
+
+        this.labelHoveredIn = false;
     }
 
     animateIn(fast) {

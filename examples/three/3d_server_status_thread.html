@@ -530,7 +530,7 @@
                             this.latencyArray.push(latency);
                         }
 
-                        const serverUptime = data[1];
+                        const serverUptime = data[1]; // seconds
                         const serverUptimeFormatted = Utils.formatSeconds(serverUptime);
 
                         let latencyAvg;
@@ -542,7 +542,14 @@
                         let loadAvg = data[2] * 100; // percentage
                         loadAvg = Math.round(loadAvg);
 
-                        this.emit('status', { serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg });
+                        this.emit('status', {
+                            timestamp: data[0], // seconds
+                            serverUptime,
+                            serverUptimeFormatted,
+                            latency,
+                            latencyAvg,
+                            loadAvg
+                        });
                         break;
                     }
                 }
@@ -1134,48 +1141,43 @@
                 }
             };
 
-            static onServerData = async ({ timestampData, latencyAvgData, loadAvgData, serverUptimeData }) => {
+            static onServerData = ({ timestampData, latencyAvgData, loadAvgData, serverUptimeData }) => {
                 this.timestampData = new TimestampData();
                 this.timestampData.setArrays(timestampData);
 
                 this.latencyAvgData = new GraphData();
                 this.latencyAvgData.setArrays(latencyAvgData);
 
-                this.view.latencyAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
                 this.view.latencyAvgGraph.setGhostArray([...this.latencyAvgData.smallGhostArrayReversed, ...this.latencyAvgData.largeGhostArrayReversed]);
                 this.view.latencyAvgGraph.setArray([...this.latencyAvgData.smallArrayReversed, ...this.latencyAvgData.largeArrayReversed]);
 
                 this.loadAvgData = new GraphData();
                 this.loadAvgData.setArrays(loadAvgData);
 
-                this.view.loadAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
-                this.view.loadAvgGraph.setGhostArray([...this.loadAvgData.smallGhostArrayReversed, ...this.loadAvgData.largeGhostArrayReversed]);
-                this.view.loadAvgGraph.setArray([...this.loadAvgData.smallArrayReversed, ...this.loadAvgData.largeArrayReversed]);
-
                 this.ui.detailsLoadAvgGraph.setGhostArray([...this.loadAvgData.smallGhostArray, ...this.loadAvgData.realtimeGhostArray]);
                 this.ui.detailsLoadAvgGraph.setArray([...this.loadAvgData.smallArray, ...this.loadAvgData.realtimeArray]);
+
+                this.view.loadAvgGraph.setGhostArray([...this.loadAvgData.smallGhostArrayReversed, ...this.loadAvgData.largeGhostArrayReversed]);
+                this.view.loadAvgGraph.setArray([...this.loadAvgData.smallArrayReversed, ...this.loadAvgData.largeArrayReversed]);
 
                 this.serverUptimeData = new GraphData();
                 this.serverUptimeData.setArrays(serverUptimeData);
 
-                this.view.serverUptimeGraph.setData([[], this.timestampData.labelsArrayReversed]);
                 this.view.serverUptimeGraph.setGhostArray([...this.serverUptimeData.smallGhostArrayReversed, ...this.serverUptimeData.largeGhostArrayReversed]);
                 this.view.serverUptimeGraph.setArray([...this.serverUptimeData.smallArrayReversed, ...this.serverUptimeData.largeArrayReversed]);
 
-                const markers = this.timestampData.markersArrayReversed.map(data => {
-                    data[0] = data[0] * 0.875; // 0.875 segment ratio
-                    return data;
-                });
-                this.view.latencyAvgGraph.setMarkers(markers);
-                this.view.loadAvgGraph.setMarkers(markers);
-                this.view.serverUptimeGraph.setMarkers(markers);
-
-                let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 3600 }); // 1hr threshold
-                peaks = peaks.map(value => 1 - value); // reversed
-                peaks.forEach(angle => this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'])); // 0.875 segment ratio
+                this.refresh();
             };
 
-            static onServerStatus = ({ serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
+            static onServerStatus = ({ timestamp, serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
+                if (this.timestampData && timestamp !== undefined) {
+                    this.timestampData.update(timestamp);
+
+                    if (this.timestampData.largeCounter === 0) {
+                        this.refresh();
+                    }
+                }
+
                 if (this.serverUptimeData && serverUptime !== undefined) {
                     this.serverUptimeData.update(serverUptime);
 
@@ -1268,6 +1270,28 @@
             };
 
             // Public methods
+
+            static refresh = async () => {
+                this.view.latencyAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
+                this.view.loadAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
+                this.view.serverUptimeGraph.setData([[], this.timestampData.labelsArrayReversed]);
+
+                const markers = this.timestampData.markersArrayReversed.map(data => {
+                    data[0] = data[0] * 0.875; // 0.875 segment ratio
+                    return data;
+                });
+                this.view.latencyAvgGraph.setMarkers(markers);
+                this.view.loadAvgGraph.setMarkers(markers);
+                this.view.serverUptimeGraph.setMarkers(markers);
+
+                let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 3600 }); // 1hr threshold
+                peaks = peaks.map(value => 1 - value); // reversed
+                peaks.forEach(angle => this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'])); // 0.875 segment ratio
+
+                // Cleanup
+                markers.length = 0;
+                peaks.length = 0;
+            };
 
             static resize = (width, height, dpr) => {
                 if (this.ui) {

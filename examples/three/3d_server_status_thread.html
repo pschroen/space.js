@@ -95,6 +95,100 @@
             };
         }
 
+        class TimestampData {
+            constructor() {
+                this.array = [];
+
+                // Median downsample
+                this.largeChunkSize = 200;
+                this.smallChunkSize = 10;
+                this.largeCounter = 0;
+            }
+
+            parse() {
+                // Median downsample
+                const array = [];
+                const chunkSize = this.smallChunkSize;
+
+                for (let i = 0, l = this.array.length; i < l; i += chunkSize) {
+                    array.push(median(this.array.slice(i, i + chunkSize)));
+                }
+
+                // Past 12hrs (~10744 status updates) downsampled to 1075 (10744 / 10)
+                this.markersArray = [];
+                this.labelsArray = [];
+                let lastDate;
+
+                for (let i = 0, l = array.length; i < l; i++) {
+                    const formatted = Utils.formatDateTimeSeconds(array[i]);
+                    const [date, time] = formatted.split(', ');
+
+                    if (i === 0) {
+                        lastDate = date;
+                    }
+
+                    if (date !== lastDate) {
+                        this.markersArray.push([i / l, date]); // position, name
+                        lastDate = date;
+                    }
+
+                    this.labelsArray.push(time);
+                }
+
+                // Reversed
+                this.markersArrayReversed = this.markersArray.toReversed().map(data => {
+                    data[0] = 1 - data[0];
+                    return data;
+                });
+                this.labelsArrayReversed = this.labelsArray.toReversed();
+
+                // Cleanup
+                array.length = 0;
+            }
+
+            // Public methods
+
+            setData = data => {
+                // Past 12hrs (~10744 status updates)
+                this.array = data.slice(-10744);
+
+                this.parse();
+            };
+
+            getArrays = () => ({
+                array: this.array,
+                markersArray: this.markersArray,
+                markersArrayReversed: this.markersArrayReversed,
+                labelsArray: this.labelsArray,
+                labelsArrayReversed: this.labelsArrayReversed
+            });
+
+            setArrays = ({
+                array,
+                markersArray,
+                markersArrayReversed,
+                labelsArray,
+                labelsArrayReversed
+            }) => {
+                this.array = array;
+                this.markersArray = markersArray;
+                this.markersArrayReversed = markersArrayReversed;
+                this.labelsArray = labelsArray;
+                this.labelsArrayReversed = labelsArrayReversed;
+            };
+
+            update = value => {
+                this.array.shift();
+                this.array.push(value);
+
+                if (++this.largeCounter === this.largeChunkSize) {
+                    this.parse();
+
+                    this.largeCounter = 0;
+                }
+            };
+        }
+
         class GraphData {
             constructor() {
                 this.array = [];
@@ -128,9 +222,10 @@
 
                 // Large median downsample
                 const array = [];
+                let chunkSize = this.largeChunkSize;
 
-                for (let i = 0, l = data.length; i < l; i += this.largeChunkSize) {
-                    array.push(median(data.slice(i, i + this.largeChunkSize)));
+                for (let i = 0, l = data.length; i < l; i += chunkSize) {
+                    array.push(median(data.slice(i, i + chunkSize)));
                 }
 
                 // Past day (~21488 status updates) downsampled to 108 (54 + 54, ghost + array)
@@ -144,9 +239,10 @@
 
                 // Small median downsample
                 array.length = 0;
+                chunkSize = this.smallChunkSize;
 
-                for (let i = 0, l = smallData.length; i < l; i += this.smallChunkSize) {
-                    array.push(median(smallData.slice(i, i + this.smallChunkSize)));
+                for (let i = 0, l = smallData.length; i < l; i += chunkSize) {
+                    array.push(median(smallData.slice(i, i + chunkSize)));
                 }
 
                 // Last 320 status updates downsampled to 32 (16 + 16, ghost + array)
@@ -261,9 +357,6 @@
                 this.server = server;
 
                 this.connected = false;
-
-                // Median downsample
-                this.chunkSize = 10;
 
                 // Latency average
                 this.latencyArray = [];
@@ -407,6 +500,10 @@
                             // Separate last status update as new update
                             const last = data.pop();
 
+                            // Timestamp data
+                            this.timestampData = new TimestampData();
+                            this.timestampData.setData(data.map(data => data[0])); // seconds
+
                             // Latency average data (initially no data, all 0s)
                             this.latencyAvgData = new GraphData();
                             this.latencyAvgData.setData(new Array(data.length).fill(0));
@@ -419,57 +516,14 @@
                             this.serverUptimeData = new GraphData();
                             this.serverUptimeData.setData(data.map(data => data[1])); // seconds
 
-                            // Median downsample timestamp data in seconds for past 12hrs
-                            data = data.map(data => data[0]).slice(-10744);
-                            const array = [];
-                            const chunkSize = this.chunkSize; // ~10744 status updates downsampled to 1075 (10744 / 10)
-
-                            for (let i = 0, l = data.length; i < l; i += chunkSize) {
-                                array.push(median(data.slice(i, i + chunkSize)));
-                            }
-
-                            // Formatted markers and labels
-                            const markersData = [];
-                            const labelsData = [];
-                            let lastDate;
-
-                            for (let i = 0, l = array.length; i < l; i++) {
-                                const formatted = Utils.formatDateTimeSeconds(array[i]);
-                                const [date, time] = formatted.split(', ');
-
-                                if (i === 0) {
-                                    lastDate = date;
-                                }
-
-                                if (date !== lastDate) {
-                                    markersData.push([i / l, date]); // position, name
-                                    lastDate = date;
-                                }
-
-                                labelsData.push(time);
-                            }
-
-                            // Reversed markers
-                            const markersDataReversed = markersData.toReversed().map(data => {
-                                data[0] = 1 - data[0];
-                                return data;
-                            });
-
                             this.emit('data', {
+                                timestampData: this.timestampData.getArrays(),
                                 latencyAvgData: this.latencyAvgData.getArrays(),
                                 loadAvgData: this.loadAvgData.getArrays(),
-                                serverUptimeData: this.serverUptimeData.getArrays(),
-                                markersData,
-                                markersDataReversed,
-                                labelsData,
-                                labelsDataReversed: labelsData.toReversed()
+                                serverUptimeData: this.serverUptimeData.getArrays()
                             });
 
                             data = last;
-
-                            // Cleanup
-                            array.length = 0;
-                            labelsData.length = 0;
                         }
 
                         if (latency !== undefined) {
@@ -784,7 +838,7 @@
                         // ['../../src/three.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
                         ['../../src/index.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
                     ],
-                    classes: [Utils, GraphData, Socket],
+                    classes: [Utils, TimestampData, GraphData, Socket],
                     controller: [SocketThread, 'init', 'getPeaks']
                 });
                 this.thread.init({ server });
@@ -1080,26 +1134,21 @@
                 }
             };
 
-            static onServerData = async ({
-                latencyAvgData,
-                loadAvgData,
-                serverUptimeData,
-                // markersData,
-                markersDataReversed,
-                // labelsData,
-                labelsDataReversed
-            }) => {
+            static onServerData = async ({ timestampData, latencyAvgData, loadAvgData, serverUptimeData }) => {
+                this.timestampData = new TimestampData();
+                this.timestampData.setArrays(timestampData);
+
                 this.latencyAvgData = new GraphData();
                 this.latencyAvgData.setArrays(latencyAvgData);
 
-                this.view.latencyAvgGraph.setData([[], labelsDataReversed]);
+                this.view.latencyAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
                 this.view.latencyAvgGraph.setGhostArray([...this.latencyAvgData.smallGhostArrayReversed, ...this.latencyAvgData.largeGhostArrayReversed]);
                 this.view.latencyAvgGraph.setArray([...this.latencyAvgData.smallArrayReversed, ...this.latencyAvgData.largeArrayReversed]);
 
                 this.loadAvgData = new GraphData();
                 this.loadAvgData.setArrays(loadAvgData);
 
-                this.view.loadAvgGraph.setData([[], labelsDataReversed]);
+                this.view.loadAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
                 this.view.loadAvgGraph.setGhostArray([...this.loadAvgData.smallGhostArrayReversed, ...this.loadAvgData.largeGhostArrayReversed]);
                 this.view.loadAvgGraph.setArray([...this.loadAvgData.smallArrayReversed, ...this.loadAvgData.largeArrayReversed]);
 
@@ -1109,11 +1158,11 @@
                 this.serverUptimeData = new GraphData();
                 this.serverUptimeData.setArrays(serverUptimeData);
 
-                this.view.serverUptimeGraph.setData([[], labelsDataReversed]);
+                this.view.serverUptimeGraph.setData([[], this.timestampData.labelsArrayReversed]);
                 this.view.serverUptimeGraph.setGhostArray([...this.serverUptimeData.smallGhostArrayReversed, ...this.serverUptimeData.largeGhostArrayReversed]);
                 this.view.serverUptimeGraph.setArray([...this.serverUptimeData.smallArrayReversed, ...this.serverUptimeData.largeArrayReversed]);
 
-                const markers = markersDataReversed.map(data => {
+                const markers = this.timestampData.markersArrayReversed.map(data => {
                     data[0] = data[0] * 0.875; // 0.875 segment ratio
                     return data;
                 });

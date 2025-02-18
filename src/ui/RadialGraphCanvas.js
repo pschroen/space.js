@@ -514,18 +514,20 @@ export class RadialGraphCanvas extends Interface {
 
         this.items.push(item);
 
-        if (fast) {
-            item.multiplier = 1;
-            item.css({ opacity: 1 });
-        } else if (this.initialized) {
-            item.events.on('update', this.onMarkerUpdate);
-            item.events.on('click', this.onMarkerClick);
+        if (this.animatedIn) {
+            if (fast) {
+                item.multiplier = 1;
+                item.css({ opacity: 1 });
+            } else {
+                item.events.on('update', this.onMarkerUpdate);
+                item.events.on('click', this.onMarkerClick);
 
-            tween(item, { multiplier: 1 }, 400, 'easeOutCubic', null, () => {
-                item.css({ opacity: item.multiplier });
-            });
+                tween(item, { multiplier: 1 }, 400, 'easeOutCubic', null, () => {
+                    item.css({ opacity: item.multiplier });
+                });
 
-            Stage.events.emit('marker', { type: 'add', item, target: this });
+                Stage.events.emit('marker', { type: 'add', item, target: this });
+            }
         }
     }
 

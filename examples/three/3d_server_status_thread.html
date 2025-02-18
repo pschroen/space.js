@@ -1280,13 +1280,15 @@
                     data[0] = data[0] * 0.875; // 0.875 segment ratio
                     return data;
                 });
-                this.view.latencyAvgGraph.setMarkers(markers);
-                this.view.loadAvgGraph.setMarkers(markers);
-                this.view.serverUptimeGraph.setMarkers(markers);
+                this.view.latencyAvgGraph.setMarkers(markers, true);
+                this.view.loadAvgGraph.setMarkers(markers, true);
+                this.view.serverUptimeGraph.setMarkers(markers, true);
 
                 let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 3600 }); // 1hr threshold
                 peaks = peaks.map(value => 1 - value); // reversed
-                peaks.forEach(angle => this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'])); // 0.875 segment ratio
+                peaks.forEach(angle => {
+                    this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'], true); // 0.875 segment ratio
+                });
 
                 // Cleanup
                 markers.length = 0;

@@ -432,11 +432,11 @@ export class RadialGraph extends Interface {
         return name;
     }
 
-    setMarkers(markers) {
+    setMarkers(markers, fast) {
         this.items.forEach(item => item.destroy());
         this.items.length = 0;
 
-        markers.forEach(data => this.addMarker(data));
+        markers.forEach(data => this.addMarker(data, fast));
     }
 
     setHover(type = 'out') {
@@ -538,7 +538,7 @@ export class RadialGraph extends Interface {
         this.update();
     }
 
-    addMarker([angle, name]) {
+    addMarker([angle, name], fast) {
         const item = new GraphMarker({ name, noDrag: this.noMarkerDrag });
         item.angle = angle;
         item.multiplier = 0;
@@ -546,7 +546,10 @@ export class RadialGraph extends Interface {
 
         this.items.push(item);
 
-        if (this.initialized) {
+        if (fast) {
+            item.multiplier = 1;
+            item.css({ opacity: 1 });
+        } else if (this.initialized) {
             item.events.on('update', this.onMarkerUpdate);
             item.events.on('click', this.onMarkerClick);
 
@@ -985,6 +988,7 @@ export class RadialGraph extends Interface {
 
             if (!this.noMarker) {
                 this.items.forEach(item => {
+                    item.multiplier = 1;
                     item.css({ opacity: 1 });
                 });
             }

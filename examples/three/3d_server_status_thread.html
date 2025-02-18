@@ -97,9 +97,9 @@
 
         class GraphData {
             constructor() {
-                // Graph averages
-                this.ghostArray = [];
                 this.array = [];
+
+                // Graph averages
                 this.largeGhostArray = [];
                 this.largeArray = [];
                 this.smallGhostArray = [];
@@ -114,12 +114,11 @@
             // Public methods
 
             setData = data => {
-                this.data = data;
+                // Past 12hrs (~10744 status updates)
+                this.array = data.slice(-10744);
 
                 // Last 320 status updates for small graph (160 + 160, ghost + array)
-                data = data.slice(-320);
-                this.ghostArray = data.slice(0, 160);
-                this.array = data.slice(-160);
+                const smallData = data.slice(-320);
 
                 // Last 20 status updates for realtime graph (10 + 10, ghost + array)
                 const realtimeData = data.slice(-20);
@@ -129,8 +128,8 @@
                 // Large median downsample
                 const array = [];
 
-                for (let i = 0, l = this.data.length; i < l; i += this.largeChunkSize) {
-                    array.push(median(this.data.slice(i, i + this.largeChunkSize)));
+                for (let i = 0, l = data.length; i < l; i += this.largeChunkSize) {
+                    array.push(median(data.slice(i, i + this.largeChunkSize)));
                 }
 
                 // Past day (~21488 status updates) downsampled to 108 (54 + 54, ghost + array)
@@ -145,8 +144,8 @@
                 // Small median downsample
                 array.length = 0;
 
-                for (let i = 0, l = data.length; i < l; i += this.smallChunkSize) {
-                    array.push(median(data.slice(i, i + this.smallChunkSize)));
+                for (let i = 0, l = smallData.length; i < l; i += this.smallChunkSize) {
+                    array.push(median(smallData.slice(i, i + this.smallChunkSize)));
                 }
 
                 // Last 320 status updates downsampled to 32 (16 + 16, ghost + array)
@@ -160,12 +159,12 @@
                 this.smallArrayReversed = this.smallArray.toReversed();
 
                 // Cleanup
+                smallData.length = 0;
                 realtimeData.length = 0;
                 array.length = 0;
             };
 
             getArrays = () => ({
-                ghostArray: this.ghostArray,
                 array: this.array,
                 largeGhostArray: this.largeGhostArray,
                 largeGhostArrayReversed: this.largeGhostArrayReversed,
@@ -180,7 +179,6 @@
             });
 
             setArrays = ({
-                ghostArray,
                 array,
                 largeGhostArray,
                 largeGhostArrayReversed,
@@ -193,7 +191,6 @@
                 realtimeGhostArray,
                 realtimeArray
             }) => {
-                this.ghostArray = ghostArray;
                 this.array = array;
                 this.largeGhostArray = largeGhostArray;
                 this.largeGhostArrayReversed = largeGhostArrayReversed;
@@ -209,16 +206,14 @@
 
             getPeaks = threshold => {
                 // Past 12hrs (~10744 status updates)
-                const groups = consecutive(peaks(this.data.slice(-10744), this.largeChunkSize / 2, threshold));
+                const groups = consecutive(peaks(this.array, this.largeChunkSize / 2, threshold));
 
                 return groups.map(array => array[0] / 10744); // First index normalized
             };
 
             update = value => {
-                const ghost = this.array.shift();
+                this.array.shift();
                 this.array.push(value);
-                this.ghostArray.shift();
-                this.ghostArray.push(ghost);
 
                 // Last 20 status updates for realtime graph (10 + 10, ghost + array)
                 const realtimeData = this.array.slice(-20);
@@ -227,10 +222,10 @@
 
                 // Small median downsample
                 if (++this.realtimeCounter === this.smallChunkSize) {
-                    const medianGhost = this.smallArray.shift();
+                    const smallGhost = this.smallArray.shift();
                     this.smallArray.push(median(this.realtimeArray));
                     this.smallGhostArray.shift();
-                    this.smallGhostArray.push(medianGhost);
+                    this.smallGhostArray.push(smallGhost);
 
                     // Small reversed
                     this.smallGhostArrayReversed = this.smallGhostArray.toReversed();

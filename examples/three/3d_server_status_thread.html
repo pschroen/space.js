@@ -530,6 +530,7 @@
                             this.latencyArray.push(latency);
                         }
 
+                        const currentTime = data[0]; // seconds
                         const serverUptime = data[1]; // seconds
                         const serverUptimeFormatted = Utils.formatSeconds(serverUptime);
 
@@ -542,8 +543,14 @@
                         let loadAvg = data[2] * 100; // percentage
                         loadAvg = Math.round(loadAvg);
 
+                        // Update data
+                        this.timestampData.update(currentTime);
+                        this.serverUptimeData.update(serverUptime);
+                        this.latencyAvgData.update(latencyAvg);
+                        this.loadAvgData.update(loadAvg);
+
                         this.emit('status', {
-                            timestamp: data[0], // seconds
+                            currentTime,
                             serverUptime,
                             serverUptimeFormatted,
                             latency,
@@ -1169,9 +1176,9 @@
                 this.refresh();
             };
 
-            static onServerStatus = ({ timestamp, serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
-                if (this.timestampData && timestamp !== undefined) {
-                    this.timestampData.update(timestamp);
+            static onServerStatus = ({ currentTime, serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
+                if (this.timestampData && currentTime !== undefined) {
+                    this.timestampData.update(currentTime);
 
                     if (this.timestampData.largeCounter === 0) {
                         this.refresh();

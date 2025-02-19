@@ -848,8 +848,6 @@
 
                 this.thread = new Thread({
                     imports: [
-                        // TODO: Investigate why the `three` entry point fails
-                        // ['../../src/three.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
                         ['../../src/index.js', 'EventEmitter', 'average', 'consecutive', 'delayedCall', 'median', 'peaks']
                     ],
                     classes: [Utils, TimestampData, GraphData, Socket],

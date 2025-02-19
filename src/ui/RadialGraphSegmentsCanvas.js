@@ -848,24 +848,26 @@ export class RadialGraphSegmentsCanvas extends Interface {
             this.context.arc(x3, y3, 2.5, 0, TwoPI);
             this.context.stroke();
 
-            this.info.css({ left: x0, top: y0 });
-            this.info.text(this.format(value.toFixed(this.precision)));
+            if (this.animatedIn) {
+                this.info.css({ left: x0, top: y0 });
+                this.info.text(this.format(value.toFixed(this.precision)));
 
-            if (this.label) {
-                if (this.data[i] && this.data[i].length) {
-                    const value = this.data[i][Math.floor(segmentAngle * this.data[i].length)];
-                    const radius = this.middle + this.labelDistance;
-                    const x = this.middle + radius * Math.cos(angle);
-                    const y = this.middle + radius * Math.sin(angle);
+                if (this.label) {
+                    if (this.data[i] && this.data[i].length) {
+                        const value = this.data[i][Math.floor(segmentAngle * this.data[i].length)];
+                        const radius = this.middle + this.labelDistance;
+                        const x = this.middle + radius * Math.cos(angle);
+                        const y = this.middle + radius * Math.sin(angle);
 
-                    this.label.css({ left: x, top: y });
-                    this.label.text(value);
+                        this.label.css({ left: x, top: y });
+                        this.label.text(value);
 
-                    if (this.hoveredIn && !this.labelHoveredIn) {
-                        this.hoverLabelIn();
+                        if (this.hoveredIn && !this.labelHoveredIn) {
+                            this.hoverLabelIn();
+                        }
+                    } else if (this.hoveredIn && this.labelHoveredIn) {
+                        this.hoverLabelOut();
                     }
-                } else if (this.hoveredIn && this.labelHoveredIn) {
-                    this.hoverLabelOut();
                 }
             }
         }

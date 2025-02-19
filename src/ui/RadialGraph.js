@@ -752,8 +752,10 @@ export class RadialGraph extends Interface {
             this.context.arc(x3, y3, 2.5, 0, TwoPI);
             this.context.stroke();
 
-            this.info.css({ left: x0, top: y0 });
-            this.info.text(this.format(value.toFixed(this.precision)));
+            if (this.animatedIn) {
+                this.info.css({ left: x0, top: y0 });
+                this.info.text(this.format(value.toFixed(this.precision)));
+            }
         }
     }
 

@@ -771,21 +771,23 @@ export class GraphSegments extends Interface {
             this.context.arc(x, y, 2.5, 0, Math.PI * 2);
             this.context.stroke();
 
-            this.info.css({ left: x });
-            this.info.text(this.format(value.toFixed(this.precision)));
+            if (this.animatedIn) {
+                this.info.css({ left: x });
+                this.info.text(this.format(value.toFixed(this.precision)));
 
-            if (this.label) {
-                if (this.data[i] && this.data[i].length) {
-                    const value = this.data[i][Math.floor(segmentX * this.data[i].length)];
+                if (this.label) {
+                    if (this.data[i] && this.data[i].length) {
+                        const value = this.data[i][Math.floor(segmentX * this.data[i].length)];
 
-                    this.label.css({ left: x });
-                    this.label.text(value);
+                        this.label.css({ left: x });
+                        this.label.text(value);
 
-                    if (this.hoveredIn && !this.labelHoveredIn) {
-                        this.hoverLabelIn();
+                        if (this.hoveredIn && !this.labelHoveredIn) {
+                            this.hoverLabelIn();
+                        }
+                    } else if (this.hoveredIn && this.labelHoveredIn) {
+                        this.hoverLabelOut();
                     }
-                } else if (this.hoveredIn && this.labelHoveredIn) {
-                    this.hoverLabelOut();
                 }
             }
         }

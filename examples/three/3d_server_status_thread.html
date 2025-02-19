@@ -1265,6 +1265,7 @@
 
             static onMenu = ({ index }) => {
                 this.view.graph.setIndex(index);
+                this.view.point.onHover({ type: 'over' });
             };
 
             static onKeyUp = e => {

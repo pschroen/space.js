@@ -50,6 +50,10 @@ export class GraphMarker extends Interface {
 
         await defer();
 
+        if (!this.element) {
+            return;
+        }
+
         this.width = this.element.getBoundingClientRect().width;
     }
 

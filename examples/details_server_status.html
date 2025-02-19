@@ -25,6 +25,25 @@
     <script type="module">
         import { EventEmitter, UI, average, delayedCall, median, ticker } from '../src/index.js';
 
+        class Utils {
+            // https://stackoverflow.com/questions/36098913/convert-seconds-to-days-hours-minutes-and-seconds/52387803#52387803
+            static formatSeconds(seconds) {
+                seconds = Number(seconds);
+
+                const d = Math.floor(seconds / 86400);
+                const h = Math.floor(seconds % 86400 / 3600);
+                const m = Math.floor(seconds % 3600 / 60);
+                const s = Math.floor(seconds % 60);
+
+                const daysFormatted = d > 0 ? `${d}${(d === 1 ? ' day ' : ' days ')}` : '';
+                const hoursFormatted = h > 0 ? `${h}${(h === 1 ? ' hour ' : ' hours ')}` : '';
+                const minutesFormatted = m > 0 ? `${m}${(m === 1 ? ' minute ' : ' minutes ')}` : '';
+                const secondsFormatted = `${s}${(s === 1 ? ' second' : ' seconds')}`;
+
+                return `${daysFormatted}${hoursFormatted}${minutesFormatted}${secondsFormatted}`;
+            }
+        }
+
         class Socket extends EventEmitter {
             constructor(server) {
                 super();
@@ -177,13 +196,13 @@
 
                         let data = status;
 
+                        // Initial data dump
                         if (data.length > 3) {
                             // Separate last status update as new update
                             const last = data.pop();
 
                             // Load average data
-                            data = data.map(data => data[2] * 100); // percentage
-                            this.data = data;
+                            data = data.slice(-200).map(data => data[2] * 100); // percentage
 
                             // Last 20 status updates for realtime graph (10 + 10, ghost + array)
                             const realtimeArray = data.slice(-20);
@@ -192,17 +211,20 @@
                             const array = [];
                             const chunkSize = this.chunkSize;
 
-                            for (let i = 0; i < data.length; i += chunkSize) {
+                            for (let i = 0, l = data.length; i < l; i += chunkSize) {
                                 array.push(median(data.slice(i, i + chunkSize)));
                             }
 
-                            // Last 320 status updates downsampled to 32 (16 + 16, ghost + array)
-                            this.ghostArray = array.slice(0, 16);
-                            this.array = array.slice(-16);
+                            // Last 200 status updates downsampled to 20 (10 + 10, ghost + array)
+                            this.ghostArray = array.slice(0, 10);
+                            this.array = array.slice(-10);
 
                             // Re-add realtime data to the end of each array
                             this.ghostArray.push(...realtimeArray.slice(0, 10));
                             this.array.push(...realtimeArray.slice(-10));
+
+                            // Cleanup
+                            array.length = 0;
 
                             this.emit('array', {
                                 ghostArray: this.ghostArray,
@@ -216,20 +238,9 @@
                             this.latencyArray.push(latency);
                         }
 
-                        let serverUptime = data[1];
-
-                        // https://stackoverflow.com/questions/36098913/convert-seconds-to-days-hours-minutes-and-seconds/52387803#52387803
-                        const days = Math.floor(serverUptime / (3600 * 24));
-                        const hours = Math.floor(serverUptime % (3600 * 24) / 3600);
-                        const minutes = Math.floor(serverUptime % 3600 / 60);
-                        const seconds = Math.floor(serverUptime % 60);
-
-                        const daysFormatted = days > 0 ? days + (days === 1 ? ' day ' : ' days ') : '';
-                        const hoursFormatted = hours > 0 ? hours + (hours === 1 ? ' hour ' : ' hours ') : '';
-                        const minutesFormatted = minutes > 0 ? minutes + (minutes === 1 ? ' minute ' : ' minutes ') : '';
-                        const secondsFormatted = seconds > 0 ? seconds + (seconds === 1 ? ' second' : ' seconds') : '';
-
-                        serverUptime = daysFormatted + hoursFormatted + minutesFormatted + secondsFormatted;
+                        const currentTime = data[0]; // seconds
+                        const serverUptime = data[1]; // seconds
+                        const serverUptimeFormatted = Utils.formatSeconds(serverUptime);
 
                         let latencyAvg;
 
@@ -240,7 +251,14 @@
                         let loadAvg = data[2] * 100; // percentage
                         loadAvg = Math.round(loadAvg);
 
-                        this.emit('status', { serverUptime, latency, latencyAvg, loadAvg });
+                        this.emit('status', {
+                            currentTime,
+                            serverUptime,
+                            serverUptimeFormatted,
+                            latency,
+                            latencyAvg,
+                            loadAvg
+                        });
                         break;
                     }
                 }
@@ -430,9 +448,9 @@
                                             title: '',
                                             graph: {
                                                 suffix: '%',
-                                                resolution: 26,
+                                                resolution: 20,
                                                 lookupPrecision: [100, 0],
-                                                segments: [16, 10],
+                                                segments: [10, 10],
                                                 ratio: [0.9, 0.1],
                                                 range: 400,
                                                 width: 200,
@@ -537,9 +555,9 @@
                 this.ui.detailsLoadAvgGraph.setArray(this.array);
             };
 
-            static onServerStatus = ({ serverUptime, latency, latencyAvg, loadAvg }) => {
-                if (serverUptime !== undefined) {
-                    this.ui.detailsUptime.html(serverUptime);
+            static onServerStatus = ({ /* currentTime, serverUptime,  */serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
+                if (serverUptimeFormatted !== undefined) {
+                    this.ui.detailsUptime.html(serverUptimeFormatted);
                 }
 
                 if (latency !== undefined) {
@@ -552,7 +570,7 @@
                     this.ui.detailsLatencyAvgMeter.update(latencyAvg);
                 }
 
-                if (loadAvg !== undefined && this.array) {
+                if (this.array && loadAvg !== undefined) {
                     this.ui.detailsLoadAvg.html(`${loadAvg}% (1min avg)`);
                     this.ui.detailsLoadAvgMeter.update(loadAvg);
 
@@ -570,14 +588,14 @@
                         // Median downsample
                         const value = median(realtimeArray);
 
-                        const ghostArray = this.ghostArray.slice(0, 16);
-                        const array = this.array.slice(0, 16);
+                        const ghostArray = this.ghostArray.slice(0, 10);
+                        const array = this.array.slice(0, 10);
                         const ghost = array.shift();
                         array.push(value);
                         ghostArray.shift();
                         ghostArray.push(ghost);
-                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 16, ...ghostArray);
-                        this.ui.detailsLoadAvgGraph.array.splice(0, 16, ...array);
+                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 10, ...ghostArray);
+                        this.ui.detailsLoadAvgGraph.array.splice(0, 10, ...array);
                         this.ui.detailsLoadAvgGraph.graphNeedsUpdate = true;
 
                         this.realtimeCounter = 0;

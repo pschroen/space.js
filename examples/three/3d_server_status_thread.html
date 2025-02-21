@@ -113,11 +113,16 @@
 
             parse() {
                 // Median downsample
-                const array = [];
+                let array = [];
                 const chunkSize = this.smallChunkSize;
 
                 for (let i = 0, l = this.array.length; i < l; i += chunkSize) {
                     array.push(median(this.array.slice(i, i + chunkSize)));
+                }
+
+                // Duplicate first value for truncated array
+                if (array.length < 1075) {
+                    array = Utils.backfill(array, 1075, array[0] || 0);
                 }
 
                 // Past 12hrs (~10744 status updates) downsampled to 1075 (10744 / 10)
@@ -236,11 +241,15 @@
 
                 // Past day (~21488 status updates) downsampled to 108 (54 + 54, ghost + array)
                 this.largeArray = array.splice(-54, 54);
+
+                if (this.largeArray.length < 54) {
+                    this.largeArray = Utils.backfill(this.largeArray, 54, this.largeArray[0] || 0);
+                }
+
                 this.largeGhostArray = array.splice(-54, 54);
 
-                // Duplicate data for truncated ghost
-                for (let i = this.largeGhostArray.length; i < 54; i++) {
-                    this.largeGhostArray.unshift(this.largeGhostArray[0]);
+                if (this.largeGhostArray.length < 54) {
+                    this.largeGhostArray = Utils.backfill(this.largeGhostArray, 54, this.largeGhostArray[0] || 0);
                 }
 
                 // Small median downsample

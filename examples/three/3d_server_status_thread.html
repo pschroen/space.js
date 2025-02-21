@@ -70,10 +70,16 @@
                 return new Date(seconds * 1000).toLocaleString('default', {
                     month: 'short',
                     day: 'numeric',
+                    // year: 'numeric',
                     hour: 'numeric',
                     minute: 'numeric',
                     hour12: false
                 });
+            }
+
+            // https://stackoverflow.com/questions/32054170/how-to-resize-an-array/32055229#32055229
+            static backfill(array, size, value) {
+                return [...Array(Math.max(0, size - array.length)).fill(value), ...array];
             }
         }
 
@@ -409,7 +415,7 @@
                         this.send({ event, message });
                         break;
                     case 'server-details': {
-                        const { details/* , latency */ } = message;
+                        const { details/* , serverUptime, latency */ } = message;
 
                         const {
                             // packageVersion,
@@ -423,8 +429,7 @@
                             storageTotal,
                             storageAvailable,
                             processorName,
-                            numProcessingUnits,
-                            numClients
+                            numProcessingUnits
                         } = details;
 
                         const memUsed = memTotal - memFree;
@@ -485,13 +490,12 @@
                             storageTotal: storageTotalFormatted,
                             storageUsedPercentage,
                             processorName,
-                            numProcessingUnits,
-                            numClients: numClients > 0 ? numClients : 1
+                            numProcessingUnits
                         });
                         break;
                     }
                     case 'server-status': {
-                        const { status, latency } = message;
+                        const { status, serverUptime, latency } = message;
 
                         let data = status;
 
@@ -510,17 +514,17 @@
 
                             // Load average data
                             this.loadAvgData = new GraphData();
-                            this.loadAvgData.setData(data.map(data => data[2] * 100)); // percentage
+                            this.loadAvgData.setData(data.map(data => data[1] * 100)); // percentage
 
-                            // Server uptime data
-                            this.serverUptimeData = new GraphData();
-                            this.serverUptimeData.setData(data.map(data => data[1])); // seconds
+                            // Clients data
+                            this.clientsData = new GraphData();
+                            this.clientsData.setData(data.map(data => data[2]));
 
                             this.emit('data', {
                                 timestampData: this.timestampData.getArrays(),
                                 latencyAvgData: this.latencyAvgData.getArrays(),
                                 loadAvgData: this.loadAvgData.getArrays(),
-                                serverUptimeData: this.serverUptimeData.getArrays()
+                                clientsData: this.clientsData.getArrays()
                             });
 
                             data = last;
@@ -531,7 +535,6 @@
                         }
 
                         const currentTime = data[0]; // seconds
-                        const serverUptime = data[1]; // seconds
                         const serverUptimeFormatted = Utils.formatSeconds(serverUptime);
 
                         let latencyAvg;
@@ -540,14 +543,16 @@
                             latencyAvg = Math.round(average(this.latencyArray));
                         }
 
-                        let loadAvg = data[2] * 100; // percentage
+                        let loadAvg = data[1] * 100; // percentage
                         loadAvg = Math.round(loadAvg);
+
+                        const numClients = data[2];
 
                         // Update data
                         this.timestampData.update(currentTime);
-                        this.serverUptimeData.update(serverUptime);
                         this.latencyAvgData.update(latencyAvg);
                         this.loadAvgData.update(loadAvg);
+                        this.clientsData.update(numClients);
 
                         this.emit('status', {
                             currentTime,
@@ -555,7 +560,8 @@
                             serverUptimeFormatted,
                             latency,
                             latencyAvg,
-                            loadAvg
+                            loadAvg,
+                            numClients
                         });
                         break;
                     }
@@ -756,7 +762,7 @@
                     });
                     object.graph.add(object.loadAvgGraph);
 
-                    object.serverUptimeGraph = new RadialGraphSegmentsCanvas({
+                    object.clientsGraph = new RadialGraphSegmentsCanvas({
                         start: -45,
                         graphHeight: 40,
                         resolution: 64,
@@ -764,12 +770,11 @@
                         lookupPrecision: [25, 100],
                         segments: [10, 54],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
-                        labels: ['Uptime', '12hrs'],
-                        range: 60000, // ~16hrs in seconds
-                        format: Utils.formatInfoSeconds,
+                        labels: ['Clients', '12hrs'],
+                        range: 10,
                         noMarkerDrag: true
                     });
-                    object.graph.add(object.serverUptimeGraph);
+                    object.graph.add(object.clientsGraph);
 
                     // Default graph (load average)
                     object.graph.setIndex(1);
@@ -900,8 +905,7 @@
                 storageTotal,
                 storageUsedPercentage,
                 processorName,
-                numProcessingUnits,
-                numClients
+                numProcessingUnits
             }) => {
                 if (!this.ui) {
                     this.ui = new UI({
@@ -954,7 +958,7 @@
                                         },
                                         {
                                             title: 'Clients',
-                                            content: numClients,
+                                            content: '',
                                             width: 70
                                         }
                                     ]
@@ -1093,8 +1097,7 @@
                     this.menu = new Menu({
                         bottom: true,
                         itemWidth: 74,
-                        items: ['Latency', 'Load', 'Uptime'],
-                        // items: ['Uptime', 'Load', 'Clients'],
+                        items: ['Latency', 'Load', 'Clients'],
                         active: 'Load'
                     });
                     this.menu.css({ position: 'absolute' });
@@ -1133,8 +1136,6 @@
                     window.addEventListener('keyup', this.onKeyUp);
                     window.dispatchEvent(new Event('resize'));
                 } else {
-                    this.ui.detailsNumClients.html(numClients);
-
                     this.ui.detailsMem.html(`${memUsed} / ${memTotal} (${memUsedPercentage}%)`);
                     this.ui.detailsMemMeter.update(memUsedPercentage);
 
@@ -1146,7 +1147,7 @@
                 }
             };
 
-            static onServerData = ({ timestampData, latencyAvgData, loadAvgData, serverUptimeData }) => {
+            static onServerData = ({ timestampData, latencyAvgData, loadAvgData, clientsData }) => {
                 this.timestampData = new TimestampData();
                 this.timestampData.setArrays(timestampData);
 
@@ -1165,39 +1166,21 @@
                 this.view.loadAvgGraph.setGhostArray([...this.loadAvgData.smallGhostArrayReversed, ...this.loadAvgData.largeGhostArrayReversed]);
                 this.view.loadAvgGraph.setArray([...this.loadAvgData.smallArrayReversed, ...this.loadAvgData.largeArrayReversed]);
 
-                this.serverUptimeData = new GraphData();
-                this.serverUptimeData.setArrays(serverUptimeData);
+                this.clientsData = new GraphData();
+                this.clientsData.setArrays(clientsData);
 
-                this.view.serverUptimeGraph.setGhostArray([...this.serverUptimeData.smallGhostArrayReversed, ...this.serverUptimeData.largeGhostArrayReversed]);
-                this.view.serverUptimeGraph.setArray([...this.serverUptimeData.smallArrayReversed, ...this.serverUptimeData.largeArrayReversed]);
+                this.view.clientsGraph.setGhostArray([...this.clientsData.smallGhostArrayReversed, ...this.clientsData.largeGhostArrayReversed]);
+                this.view.clientsGraph.setArray([...this.clientsData.smallArrayReversed, ...this.clientsData.largeArrayReversed]);
 
                 this.refresh();
             };
 
-            static onServerStatus = ({ currentTime, serverUptime, serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
+            static onServerStatus = ({ currentTime, serverUptimeFormatted, latency, latencyAvg, loadAvg, numClients }) => {
                 if (this.timestampData && currentTime !== undefined) {
                     this.timestampData.update(currentTime);
 
                     if (this.timestampData.largeCounter === 0) {
                         this.refresh();
-                    }
-                }
-
-                if (this.serverUptimeData && serverUptime !== undefined) {
-                    this.serverUptimeData.update(serverUptime);
-
-                    if (this.serverUptimeData.smallCounter === 0) {
-                        this.view.serverUptimeGraph.ghostArray.splice(0, 10, ...this.serverUptimeData.smallGhostArrayReversed);
-                        this.view.serverUptimeGraph.array.splice(0, 10, ...this.serverUptimeData.smallArrayReversed);
-                        this.view.serverUptimeGraph.needsUpdate = true;
-                        this.view.serverUptimeGraph.graphNeedsUpdate = true;
-                    }
-
-                    if (this.serverUptimeData.largeCounter === 0) {
-                        this.view.serverUptimeGraph.ghostArray.splice(-54, 54, ...this.serverUptimeData.largeGhostArrayReversed);
-                        this.view.serverUptimeGraph.array.splice(-54, 54, ...this.serverUptimeData.largeArrayReversed);
-                        this.view.serverUptimeGraph.needsUpdate = true;
-                        this.view.serverUptimeGraph.graphNeedsUpdate = true;
                     }
                 }
 
@@ -1261,6 +1244,26 @@
 
                     this.ui.detailsLoadAvgGraph.update();
                 }
+
+                if (this.clientsData && numClients !== undefined) {
+                    this.ui.detailsNumClients.html(numClients);
+
+                    this.clientsData.update(numClients);
+
+                    if (this.clientsData.smallCounter === 0) {
+                        this.view.clientsGraph.ghostArray.splice(0, 10, ...this.clientsData.smallGhostArrayReversed);
+                        this.view.clientsGraph.array.splice(0, 10, ...this.clientsData.smallArrayReversed);
+                        this.view.clientsGraph.needsUpdate = true;
+                        this.view.clientsGraph.graphNeedsUpdate = true;
+                    }
+
+                    if (this.clientsData.largeCounter === 0) {
+                        this.view.clientsGraph.ghostArray.splice(-54, 54, ...this.clientsData.largeGhostArrayReversed);
+                        this.view.clientsGraph.array.splice(-54, 54, ...this.clientsData.largeArrayReversed);
+                        this.view.clientsGraph.needsUpdate = true;
+                        this.view.clientsGraph.graphNeedsUpdate = true;
+                    }
+                }
             };
 
             static onMenu = ({ index }) => {
@@ -1280,7 +1283,7 @@
             static refresh = async () => {
                 this.view.latencyAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
                 this.view.loadAvgGraph.setData([[], this.timestampData.labelsArrayReversed]);
-                this.view.serverUptimeGraph.setData([[], this.timestampData.labelsArrayReversed]);
+                this.view.clientsGraph.setData([[], this.timestampData.labelsArrayReversed]);
 
                 const markers = this.timestampData.markersArrayReversed.map(data => {
                     data[0] = data[0] * 0.875; // 0.875 segment ratio
@@ -1288,17 +1291,17 @@
                 });
                 this.view.latencyAvgGraph.setMarkers(markers, true);
                 this.view.loadAvgGraph.setMarkers(markers, true);
-                this.view.serverUptimeGraph.setMarkers(markers, true);
+                this.view.clientsGraph.setMarkers(markers, true);
 
-                let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 3600 }); // 1hr threshold
+                /* let peaks = await this.thread.getPeaks({ name: 'serverUptimeData', threshold: 3600 }); // 1hr threshold
                 peaks = peaks.map(value => 1 - value); // reversed
                 peaks.forEach(angle => {
                     this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'], true); // 0.875 segment ratio
-                });
+                }); */
 
                 // Cleanup
                 markers.length = 0;
-                peaks.length = 0;
+                // peaks.length = 0;
             };
 
             static resize = (width, height, dpr) => {

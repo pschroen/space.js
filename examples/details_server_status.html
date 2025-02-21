@@ -110,7 +110,7 @@
                         this.send({ event, message });
                         break;
                     case 'server-details': {
-                        const { details/* , latency */ } = message;
+                        const { details/* , serverUptime, latency */ } = message;
 
                         const {
                             // packageVersion,
@@ -124,8 +124,7 @@
                             storageTotal,
                             storageAvailable,
                             processorName,
-                            numProcessingUnits,
-                            numClients
+                            numProcessingUnits
                         } = details;
 
                         const memUsed = memTotal - memFree;
@@ -186,13 +185,12 @@
                             storageTotal: storageTotalFormatted,
                             storageUsedPercentage,
                             processorName,
-                            numProcessingUnits,
-                            numClients: numClients > 0 ? numClients : 1
+                            numProcessingUnits
                         });
                         break;
                     }
                     case 'server-status': {
-                        const { status, latency } = message;
+                        const { status, serverUptime, latency } = message;
 
                         let data = status;
 
@@ -202,7 +200,7 @@
                             const last = data.pop();
 
                             // Load average data
-                            data = data.slice(-200).map(data => data[2] * 100); // percentage
+                            data = data.slice(-200).map(data => data[1] * 100); // percentage
 
                             // Last 20 status updates for realtime graph (10 + 10, ghost + array)
                             const realtimeArray = data.slice(-20);
@@ -239,7 +237,6 @@
                         }
 
                         const currentTime = data[0]; // seconds
-                        const serverUptime = data[1]; // seconds
                         const serverUptimeFormatted = Utils.formatSeconds(serverUptime);
 
                         let latencyAvg;
@@ -248,8 +245,10 @@
                             latencyAvg = Math.round(average(this.latencyArray));
                         }
 
-                        let loadAvg = data[2] * 100; // percentage
+                        let loadAvg = data[1] * 100; // percentage
                         loadAvg = Math.round(loadAvg);
+
+                        const numClients = data[2];
 
                         this.emit('status', {
                             currentTime,
@@ -257,7 +256,8 @@
                             serverUptimeFormatted,
                             latency,
                             latencyAvg,
-                            loadAvg
+                            loadAvg,
+                            numClients
                         });
                         break;
                     }
@@ -332,8 +332,7 @@
                 storageTotal,
                 storageUsedPercentage,
                 processorName,
-                numProcessingUnits,
-                numClients
+                numProcessingUnits
             }) => {
                 if (!this.ui) {
                     this.ui = new UI({
@@ -383,7 +382,7 @@
                                         },
                                         {
                                             title: 'Clients',
-                                            content: numClients,
+                                            content: '',
                                             width: 70
                                         }
                                     ]
@@ -534,8 +533,6 @@
                     ticker.add(this.onUpdate);
                     ticker.start();
                 } else {
-                    this.ui.detailsNumClients.html(numClients);
-
                     this.ui.detailsMem.html(`${memUsed} / ${memTotal} (${memUsedPercentage}%)`);
                     this.ui.detailsMemMeter.update(memUsedPercentage);
 
@@ -555,7 +552,7 @@
                 this.ui.detailsLoadAvgGraph.setArray(this.array);
             };
 
-            static onServerStatus = ({ /* currentTime, serverUptime,  */serverUptimeFormatted, latency, latencyAvg, loadAvg }) => {
+            static onServerStatus = ({ serverUptimeFormatted, latency, latencyAvg, loadAvg, numClients }) => {
                 if (serverUptimeFormatted !== undefined) {
                     this.ui.detailsUptime.html(serverUptimeFormatted);
                 }
@@ -602,6 +599,10 @@
                     }
 
                     this.ui.detailsLoadAvgGraph.update();
+                }
+
+                if (numClients !== undefined) {
+                    this.ui.detailsNumClients.html(numClients);
                 }
             };
 

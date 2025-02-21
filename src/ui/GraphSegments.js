@@ -205,38 +205,45 @@ export class GraphSegments extends Interface {
     }
 
     calculateLookup(graph) {
-        const properties = new SVGPathProperties(graph.pathData);
+        const lookupPrecision = graph.lookupPrecision;
 
-        graph.length = properties.getTotalLength();
-        graph.lookup = [];
+        const properties = new SVGPathProperties(graph.pathData);
+        const length = properties.getTotalLength();
+        const lookup = [];
 
         let i = 0;
 
         while (i <= 1) {
-            graph.lookup.push(properties.getPointAtLength(i * graph.length));
+            lookup.push(properties.getPointAtLength(i * length));
 
-            i += 1 / graph.lookupPrecision;
+            i += 1 / lookupPrecision;
         }
+
+        graph.length = length;
+        graph.lookup = lookup;
     }
 
     getCurveY(graph, mouseX, width) {
+        const lookupPrecision = graph.lookupPrecision;
+        const lookup = graph.lookup;
+
         const x = mouseX * width * this.width;
-        const approxIndex = Math.floor(mouseX * graph.lookupPrecision);
+        const approxIndex = Math.floor(mouseX * lookupPrecision);
 
-        let i = Math.max(1, approxIndex - Math.floor(graph.lookupPrecision / 4));
+        let i = Math.max(1, approxIndex - Math.floor(lookupPrecision / 4));
 
-        for (; i < graph.lookupPrecision; i++) {
-            if (graph.lookup[i].x > x) {
+        for (; i < lookupPrecision; i++) {
+            if (lookup[i].x > x) {
                 break;
             }
         }
 
-        if (i === graph.lookupPrecision) {
-            return graph.lookup[graph.lookupPrecision - 1].y;
+        if (i === lookupPrecision) {
+            return lookup[lookupPrecision - 1].y;
         }
 
-        const lower = graph.lookup[i - 1];
-        const upper = graph.lookup[i];
+        const lower = lookup[i - 1];
+        const upper = lookup[i];
         const percent = (x - lower.x) / (upper.x - lower.x);
         const diff = upper.y - lower.y;
         const y = lower.y + diff * percent;

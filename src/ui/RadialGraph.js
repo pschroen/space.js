@@ -194,55 +194,64 @@ export class RadialGraph extends Interface {
     }
 
     calculateLookup() {
-        const properties = new SVGPathProperties(this.pathData);
+        const lookupPrecision = this.lookupPrecision;
+        const middle = this.middle;
+        const startAngle = this.startAngle;
 
-        this.length = properties.getTotalLength();
-        this.lookup = [];
+        const properties = new SVGPathProperties(this.pathData);
+        const length = properties.getTotalLength();
+        const lookup = [];
 
         let i = 0;
 
         while (i <= 1) {
-            const point = properties.getPointAtLength(i * this.length);
-            const x = point.x - this.middle;
-            const y = point.y - this.middle;
+            const point = properties.getPointAtLength(i * length);
+            const x = point.x - middle;
+            const y = point.y - middle;
 
-            let angle = (-this.startAngle + Math.atan2(y, x)) % TwoPI;
+            let angle = (-startAngle + Math.atan2(y, x)) % TwoPI;
 
             if (angle < 0) {
                 angle += TwoPI;
             }
 
-            this.lookup.push({
+            lookup.push({
                 x: point.x,
                 y: point.y,
                 angle
             });
 
-            i += 1 / this.lookupPrecision;
+            i += 1 / lookupPrecision;
         }
+
+        this.length = length;
+        this.lookup = lookup;
     }
 
     getCurvePoint(mouseAngle) {
+        const lookupPrecision = this.lookupPrecision;
+        const lookup = this.lookup;
+
         const angle = mouseAngle * TwoPI;
-        const approxIndex = Math.floor(mouseAngle * this.lookupPrecision);
+        const approxIndex = Math.floor(mouseAngle * lookupPrecision);
 
-        let i = Math.max(1, approxIndex - Math.floor(this.lookupPrecision / 4));
+        let i = Math.max(1, approxIndex - Math.floor(lookupPrecision / 4));
 
-        for (; i < this.lookupPrecision; i++) {
-            if (this.lookup[i].angle > angle) {
+        for (; i < lookupPrecision; i++) {
+            if (lookup[i].angle > angle) {
                 break;
             }
         }
 
-        if (i === this.lookupPrecision) {
-            const x = this.lookup[this.lookupPrecision - 1].x;
-            const y = this.lookup[this.lookupPrecision - 1].y;
+        if (i === lookupPrecision) {
+            const x = lookup[lookupPrecision - 1].x;
+            const y = lookup[lookupPrecision - 1].y;
 
             return { x, y };
         }
 
-        const lower = this.lookup[i - 1];
-        const upper = this.lookup[i];
+        const lower = lookup[i - 1];
+        const upper = lookup[i];
         const percent = (angle - lower.angle) / (upper.angle - lower.angle);
         const diffX = upper.x - lower.x;
         const diffY = upper.y - lower.y;

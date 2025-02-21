@@ -104,6 +104,7 @@
         class TimestampData {
             constructor() {
                 this.array = [];
+                this.markers = [];
 
                 // Median downsample
                 this.largeChunkSize = 200;
@@ -129,9 +130,11 @@
                 this.markersArray = [];
                 this.labelsArray = [];
                 let lastDate;
+                const markers = Array.from(this.markers);
 
                 for (let i = 0, l = array.length; i < l; i++) {
-                    const formatted = Utils.formatDateTimeSeconds(array[i]);
+                    const value = array[i];
+                    const formatted = Utils.formatDateTimeSeconds(value);
                     const [date, time] = formatted.split(', ');
 
                     if (i === 0) {
@@ -144,6 +147,24 @@
                     }
 
                     this.labelsArray.push(time);
+
+                    // Additional markers
+                    markers.forEach(data => {
+                        const [seconds, name] = data;
+
+                        if (value > seconds) {
+                            const index = markers.indexOf(data);
+
+                            if (~index) {
+                                markers.splice(index, 1);
+                            }
+
+                            // Only add the marker if it's within the window size
+                            if (i !== 0) {
+                                this.markersArray.push([i / l, name]); // position, name
+                            }
+                        }
+                    });
                 }
 
                 // Reversed
@@ -187,6 +208,12 @@
                 this.labelsArray = labelsArray;
                 this.labelsArrayReversed = labelsArrayReversed;
             };
+
+            addMarker(data) {
+                this.markers.push(data);
+
+                this.parse();
+            }
 
             update = value => {
                 this.array.shift();
@@ -431,6 +458,7 @@
                             projectDomain,
                             networkName,
                             serverVersion,
+                            restartTime,
                             memTotal,
                             memFree,
                             swapTotal,
@@ -489,6 +517,7 @@
                             projectDomain,
                             networkName,
                             serverVersion,
+                            restartTime,
                             memUsed: memUsedFormatted,
                             memTotal: memTotalFormatted,
                             memUsedPercentage,
@@ -844,6 +873,7 @@
                 projectDomain,
                 networkName,
                 serverVersion,
+                restartTime,
                 memUsed,
                 memTotal,
                 memUsedPercentage,
@@ -856,6 +886,8 @@
                 processorName,
                 numProcessingUnits
             }) => {
+                this.restartTime = restartTime;
+
                 if (!this.ui) {
                     this.ui = new UI({
                         fps: true,
@@ -1099,6 +1131,7 @@
             static onServerData = ({ timestampData, latencyAvgData, loadAvgData, clientsData }) => {
                 this.timestampData = new TimestampData();
                 this.timestampData.setArrays(timestampData);
+                this.timestampData.addMarker([this.restartTime, 'Restart']);
 
                 this.latencyAvgData = new GraphData();
                 this.latencyAvgData.setArrays(latencyAvgData);
@@ -1242,15 +1275,8 @@
                 this.view.loadAvgGraph.setMarkers(markers, true);
                 this.view.clientsGraph.setMarkers(markers, true);
 
-                /* let peaks = this.socket.getPeaks('serverUptimeData', 3600); // 1hr threshold
-                peaks = peaks.map(value => 1 - value); // reversed
-                peaks.forEach(angle => {
-                    this.view.serverUptimeGraph.addMarker([angle * 0.875, 'Restart'], true); // 0.875 segment ratio
-                }); */
-
                 // Cleanup
                 markers.length = 0;
-                // peaks.length = 0;
             };
 
             static resize = (width, height, dpr) => {

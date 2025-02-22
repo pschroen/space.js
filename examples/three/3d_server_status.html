@@ -107,7 +107,7 @@
                 this.markers = [];
 
                 // Median downsample
-                this.largeChunkSize = 200;
+                this.largeChunkSize = 120;
                 this.smallChunkSize = 10;
                 this.largeCounter = 0;
             }
@@ -122,11 +122,11 @@
                 }
 
                 // Duplicate first value for truncated array
-                if (array.length < 1075) {
-                    array = Utils.backfill(array, 1075, array[0] || 0);
+                if (array.length < 1080) {
+                    array = Utils.backfill(array, 1080, array[0] || 0);
                 }
 
-                // Past 12hrs (~10744 status updates) downsampled to 1075 (10744 / 10)
+                // Past 12hrs (~10800 status updates) downsampled to 1080
                 this.markersArray = [];
                 this.labelsArray = [];
                 let lastDate;
@@ -181,8 +181,8 @@
             // Public methods
 
             setData = data => {
-                // Past 12hrs (~10744 status updates)
-                this.array = data.slice(-10744);
+                // Past 12hrs (~10800 status updates)
+                this.array = data.slice(-10800);
 
                 this.parse();
             };
@@ -238,7 +238,7 @@
                 this.smallArray = [];
 
                 // Median downsample
-                this.largeChunkSize = 200;
+                this.largeChunkSize = 120;
                 this.smallChunkSize = 10;
                 this.largeCounter = 0;
                 this.smallCounter = 0;
@@ -247,11 +247,11 @@
             // Public methods
 
             setData = data => {
-                // Past 12hrs (~10744 status updates)
-                this.array = data.slice(-10744);
+                // Past 12hrs (~10800 status updates)
+                this.array = data.slice(-10800);
 
-                // Last 200 status updates for small graph (100 + 100, ghost + array)
-                const smallData = data.slice(-200);
+                // Last 240 status updates for small graph (120 + 120, ghost + array)
+                const smallData = data.slice(-240);
 
                 // Last 20 status updates for realtime graph (10 + 10, ghost + array)
                 const realtimeData = data.slice(-20);
@@ -266,17 +266,17 @@
                     array.push(median(data.slice(i, i + chunkSize)));
                 }
 
-                // Past day (~21488 status updates) downsampled to 108 (54 + 54, ghost + array)
-                this.largeArray = array.splice(-54, 54);
+                // Past day (~21600 status updates) downsampled to 180 (90 + 90, ghost + array)
+                this.largeArray = array.splice(-90, 90);
 
-                if (this.largeArray.length < 54) {
-                    this.largeArray = Utils.backfill(this.largeArray, 54, this.largeArray[0] || 0);
+                if (this.largeArray.length < 90) {
+                    this.largeArray = Utils.backfill(this.largeArray, 90, this.largeArray[0] || 0);
                 }
 
-                this.largeGhostArray = array.splice(-54, 54);
+                this.largeGhostArray = array.splice(-90, 90);
 
-                if (this.largeGhostArray.length < 54) {
-                    this.largeGhostArray = Utils.backfill(this.largeGhostArray, 54, this.largeGhostArray[0] || 0);
+                if (this.largeGhostArray.length < 90) {
+                    this.largeGhostArray = Utils.backfill(this.largeGhostArray, 90, this.largeGhostArray[0] || 0);
                 }
 
                 // Small median downsample
@@ -287,9 +287,9 @@
                     array.push(median(smallData.slice(i, i + chunkSize)));
                 }
 
-                // Last 200 status updates downsampled to 20 (10 + 10, ghost + array)
-                this.smallGhostArray = array.slice(0, 10);
-                this.smallArray = array.slice(-10);
+                // Last 240 status updates downsampled to 24 (12 + 12, ghost + array)
+                this.smallGhostArray = array.slice(0, 12);
+                this.smallArray = array.slice(-12);
 
                 // Reversed
                 this.largeGhostArrayReversed = this.largeGhostArray.toReversed();
@@ -344,10 +344,10 @@
             };
 
             getPeaks = threshold => {
-                // Past 12hrs (~10744 status updates)
+                // Past 12hrs (~10800 status updates)
                 const groups = consecutive(peaks(this.array, this.largeChunkSize / 2, threshold));
 
-                return groups.map(array => array[0] / 10744); // First index normalized
+                return groups.map(array => array[0] / 10800); // First index normalized
             };
 
             update = value => {
@@ -722,10 +722,10 @@
                     object.latencyAvgGraph = new RadialGraphSegmentsCanvas({
                         start: -45,
                         graphHeight: 40,
-                        resolution: 64,
+                        resolution: 102,
                         tension: 12,
-                        lookupPrecision: [25, 100],
-                        segments: [10, 54],
+                        lookupPrecision: [25, 200],
+                        segments: [12, 90],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['Latency', '12hrs'],
                         range: 300,
@@ -737,10 +737,10 @@
                     object.loadAvgGraph = new RadialGraphSegmentsCanvas({
                         start: -45,
                         graphHeight: 40,
-                        resolution: 64,
+                        resolution: 102,
                         tension: 6,
-                        lookupPrecision: [25, 100],
-                        segments: [10, 54],
+                        lookupPrecision: [25, 200],
+                        segments: [12, 90],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['Load', '12hrs'],
                         range: 400,
@@ -752,10 +752,10 @@
                     object.clientsGraph = new RadialGraphSegmentsCanvas({
                         start: -45,
                         graphHeight: 40,
-                        resolution: 64,
+                        resolution: 102,
                         tension: 12,
-                        lookupPrecision: [25, 100],
-                        segments: [10, 54],
+                        lookupPrecision: [25, 200],
+                        segments: [12, 90],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['Clients', '12hrs'],
                         range: 10,
@@ -1004,9 +1004,9 @@
                                             title: '',
                                             graph: {
                                                 suffix: '%',
-                                                resolution: 20,
+                                                resolution: 22,
                                                 lookupPrecision: [100, 0],
-                                                segments: [10, 10],
+                                                segments: [12, 10],
                                                 ratio: [0.9, 0.1],
                                                 range: 400,
                                                 width: 200,
@@ -1182,15 +1182,15 @@
                     this.latencyAvgData.update(latencyAvg);
 
                     if (this.latencyAvgData.smallCounter === 0) {
-                        this.view.latencyAvgGraph.ghostArray.splice(0, 10, ...this.latencyAvgData.smallGhostArrayReversed);
-                        this.view.latencyAvgGraph.array.splice(0, 10, ...this.latencyAvgData.smallArrayReversed);
+                        this.view.latencyAvgGraph.ghostArray.splice(0, 12, ...this.latencyAvgData.smallGhostArrayReversed);
+                        this.view.latencyAvgGraph.array.splice(0, 12, ...this.latencyAvgData.smallArrayReversed);
                         this.view.latencyAvgGraph.needsUpdate = true;
                         this.view.latencyAvgGraph.graphNeedsUpdate = true;
                     }
 
                     if (this.latencyAvgData.largeCounter === 0) {
-                        this.view.latencyAvgGraph.ghostArray.splice(-54, 54, ...this.latencyAvgData.largeGhostArrayReversed);
-                        this.view.latencyAvgGraph.array.splice(-54, 54, ...this.latencyAvgData.largeArrayReversed);
+                        this.view.latencyAvgGraph.ghostArray.splice(-90, 90, ...this.latencyAvgData.largeGhostArrayReversed);
+                        this.view.latencyAvgGraph.array.splice(-90, 90, ...this.latencyAvgData.largeArrayReversed);
                         this.view.latencyAvgGraph.needsUpdate = true;
                         this.view.latencyAvgGraph.graphNeedsUpdate = true;
                     }
@@ -1207,19 +1207,19 @@
                     this.ui.detailsLoadAvgGraph.needsUpdate = true;
 
                     if (this.loadAvgData.smallCounter === 0) {
-                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 10, ...this.loadAvgData.smallGhostArray);
-                        this.ui.detailsLoadAvgGraph.array.splice(0, 10, ...this.loadAvgData.smallArray);
+                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 12, ...this.loadAvgData.smallGhostArray);
+                        this.ui.detailsLoadAvgGraph.array.splice(0, 12, ...this.loadAvgData.smallArray);
                         this.ui.detailsLoadAvgGraph.graphNeedsUpdate = true;
 
-                        this.view.loadAvgGraph.ghostArray.splice(0, 10, ...this.loadAvgData.smallGhostArrayReversed);
-                        this.view.loadAvgGraph.array.splice(0, 10, ...this.loadAvgData.smallArrayReversed);
+                        this.view.loadAvgGraph.ghostArray.splice(0, 12, ...this.loadAvgData.smallGhostArrayReversed);
+                        this.view.loadAvgGraph.array.splice(0, 12, ...this.loadAvgData.smallArrayReversed);
                         this.view.loadAvgGraph.needsUpdate = true;
                         this.view.loadAvgGraph.graphNeedsUpdate = true;
                     }
 
                     if (this.loadAvgData.largeCounter === 0) {
-                        this.view.loadAvgGraph.ghostArray.splice(-54, 54, ...this.loadAvgData.largeGhostArrayReversed);
-                        this.view.loadAvgGraph.array.splice(-54, 54, ...this.loadAvgData.largeArrayReversed);
+                        this.view.loadAvgGraph.ghostArray.splice(-90, 90, ...this.loadAvgData.largeGhostArrayReversed);
+                        this.view.loadAvgGraph.array.splice(-90, 90, ...this.loadAvgData.largeArrayReversed);
                         this.view.loadAvgGraph.needsUpdate = true;
                         this.view.loadAvgGraph.graphNeedsUpdate = true;
                     }
@@ -1233,15 +1233,15 @@
                     this.clientsData.update(numClients);
 
                     if (this.clientsData.smallCounter === 0) {
-                        this.view.clientsGraph.ghostArray.splice(0, 10, ...this.clientsData.smallGhostArrayReversed);
-                        this.view.clientsGraph.array.splice(0, 10, ...this.clientsData.smallArrayReversed);
+                        this.view.clientsGraph.ghostArray.splice(0, 12, ...this.clientsData.smallGhostArrayReversed);
+                        this.view.clientsGraph.array.splice(0, 12, ...this.clientsData.smallArrayReversed);
                         this.view.clientsGraph.needsUpdate = true;
                         this.view.clientsGraph.graphNeedsUpdate = true;
                     }
 
                     if (this.clientsData.largeCounter === 0) {
-                        this.view.clientsGraph.ghostArray.splice(-54, 54, ...this.clientsData.largeGhostArrayReversed);
-                        this.view.clientsGraph.array.splice(-54, 54, ...this.clientsData.largeArrayReversed);
+                        this.view.clientsGraph.ghostArray.splice(-90, 90, ...this.clientsData.largeGhostArrayReversed);
+                        this.view.clientsGraph.array.splice(-90, 90, ...this.clientsData.largeArrayReversed);
                         this.view.clientsGraph.needsUpdate = true;
                         this.view.clientsGraph.graphNeedsUpdate = true;
                     }

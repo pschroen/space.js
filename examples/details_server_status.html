@@ -200,8 +200,8 @@
                             // Separate last status update as new update
                             const last = data.pop();
 
-                            // Load average data
-                            data = data.slice(-200).map(data => data[1] * 100); // percentage
+                            // Last 240 status updates for load average graph (120 + 120, ghost + array)
+                            data = data.slice(-240).map(data => data[1] * 100); // percentage
 
                             // Last 20 status updates for realtime graph (10 + 10, ghost + array)
                             const realtimeArray = data.slice(-20);
@@ -214,9 +214,9 @@
                                 array.push(median(data.slice(i, i + chunkSize)));
                             }
 
-                            // Last 200 status updates downsampled to 20 (10 + 10, ghost + array)
-                            this.ghostArray = array.slice(0, 10);
-                            this.array = array.slice(-10);
+                            // Last 240 status updates downsampled to 24 (12 + 12, ghost + array)
+                            this.ghostArray = array.slice(0, 12);
+                            this.array = array.slice(-12);
 
                             // Re-add realtime data to the end of each array
                             this.ghostArray.push(...realtimeArray.slice(0, 10));
@@ -448,9 +448,9 @@
                                             title: '',
                                             graph: {
                                                 suffix: '%',
-                                                resolution: 20,
+                                                resolution: 22,
                                                 lookupPrecision: [100, 0],
-                                                segments: [10, 10],
+                                                segments: [12, 10],
                                                 ratio: [0.9, 0.1],
                                                 range: 400,
                                                 width: 200,
@@ -586,14 +586,14 @@
                         // Median downsample
                         const value = median(realtimeArray);
 
-                        const ghostArray = this.ghostArray.slice(0, 10);
-                        const array = this.array.slice(0, 10);
+                        const ghostArray = this.ghostArray.slice(0, 12);
+                        const array = this.array.slice(0, 12);
                         const ghost = array.shift();
                         array.push(value);
                         ghostArray.shift();
                         ghostArray.push(ghost);
-                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 10, ...ghostArray);
-                        this.ui.detailsLoadAvgGraph.array.splice(0, 10, ...array);
+                        this.ui.detailsLoadAvgGraph.ghostArray.splice(0, 12, ...ghostArray);
+                        this.ui.detailsLoadAvgGraph.array.splice(0, 12, ...array);
                         this.ui.detailsLoadAvgGraph.graphNeedsUpdate = true;
 
                         this.realtimeCounter = 0;

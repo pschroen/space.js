@@ -42,6 +42,11 @@
 
                 return `${daysFormatted}${hoursFormatted}${minutesFormatted}${secondsFormatted}`;
             }
+
+            // https://stackoverflow.com/questions/32054170/how-to-resize-an-array/32055229#32055229
+            static backfill(array, size, value) {
+                return [...Array(Math.max(0, size - array.length)).fill(value), ...array];
+            }
         }
 
         class Socket extends EventEmitter {
@@ -215,8 +220,17 @@
                             }
 
                             // Last 240 status updates downsampled to 24 (12 + 12, ghost + array)
-                            this.ghostArray = array.slice(0, 12);
-                            this.array = array.slice(-12);
+                            this.array = array.splice(-12, 12);
+
+                            if (this.array.length < 12) {
+                                this.array = Utils.backfill(this.array, 12, this.array[0] || 0);
+                            }
+
+                            this.ghostArray = array.splice(-12, 12);
+
+                            if (this.ghostArray.length < 12) {
+                                this.ghostArray = Utils.backfill(this.ghostArray, 12, this.ghostArray[0] || 0);
+                            }
 
                             // Re-add realtime data to the end of each array
                             this.ghostArray.push(...realtimeArray.slice(0, 10));

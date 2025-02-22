@@ -288,8 +288,17 @@
                 }
 
                 // Last 240 status updates downsampled to 24 (12 + 12, ghost + array)
-                this.smallGhostArray = array.slice(0, 12);
-                this.smallArray = array.slice(-12);
+                this.smallArray = array.splice(-12, 12);
+
+                if (this.smallArray.length < 12) {
+                    this.smallArray = Utils.backfill(this.smallArray, 12, this.smallArray[0] || 0);
+                }
+
+                this.smallGhostArray = array.splice(-12, 12);
+
+                if (this.smallGhostArray.length < 12) {
+                    this.smallGhostArray = Utils.backfill(this.smallGhostArray, 12, this.smallGhostArray[0] || 0);
+                }
 
                 // Reversed
                 this.largeGhostArrayReversed = this.largeGhostArray.toReversed();

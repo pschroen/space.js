@@ -35,7 +35,7 @@
         import { BoxGeometry, Color, Group, HemisphereLight, MathUtils, Mesh, MeshNormalMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        import { EventEmitter, Interface, Menu, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, consecutive, delayedCall, lerpCameras, median, peaks, ticker, tween } from '../../src/three.js';
+        import { EventEmitter, Interface, PanelItem, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, consecutive, delayedCall, lerpCameras, median, peaks, ticker, tween } from '../../src/three.js';
 
         const isDebug = /[?&]debug/.test(location.search);
 
@@ -763,8 +763,6 @@
                 this.ui = ui;
 
                 this.initPanel();
-
-                this.addListeners();
             }
 
             static initPanel() {
@@ -787,7 +785,7 @@
                         lookupPrecision: [25, 200],
                         segments: [12, 90],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
-                        labels: ['Latency', '12hrs'],
+                        labels: ['', '12hrs'],
                         range: 300,
                         suffix: 'ms',
                         noMarkerDrag: true
@@ -802,7 +800,7 @@
                         lookupPrecision: [25, 200],
                         segments: [12, 90],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
-                        labels: ['Load', '12hrs'],
+                        labels: ['', '12hrs'],
                         range: 400,
                         suffix: '%',
                         noMarkerDrag: true
@@ -817,7 +815,7 @@
                         lookupPrecision: [25, 200],
                         segments: [12, 90],
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
-                        labels: ['Clients', '12hrs'],
+                        labels: ['', '12hrs'],
                         range: 10,
                         noMarkerDrag: true
                     });
@@ -829,27 +827,52 @@
                     object.point = new Point3D(object.mesh, {
                         name: Data.getName(),
                         type: Data.getType(),
-                        graph: object.graph,
-                        noTracker: true
+                        graph: object.graph
                     });
                     object.add(object.point);
+
+                    const graphOptions = {
+                        'Latency': 0,
+                        'Load': 1,
+                        'Clients': 2
+                    };
+
+                    const items = [
+                        {
+                            type: 'divider'
+                        },
+                        {
+                            type: 'list',
+                            name: 'Graph',
+                            list: graphOptions,
+                            value: 'Load',
+                            callback: value => {
+                                const index = graphOptions[value];
+                                object.graph.setIndex(index);
+                            }
+                        },
+                        {
+                            type: 'divider'
+                        },
+                        {
+                            type: 'link',
+                            value: 'Details',
+                            callback: () => {
+                                this.ui.toggleDetails(!this.ui.details.animatedIn);
+                                object.point.animateOut(true);
+                                object.point.deactivate();
+                            }
+                        }
+                    ];
+
+                    items.forEach(data => {
+                        object.point.addPanel(new PanelItem(data));
+                    });
                 });
 
                 // Shrink tracker mesh to better match the visual size of the object
                 view.point.mesh.scale.multiplyScalar(0.8);
             }
-
-            static addListeners() {
-                Point3D.events.on('click', this.onClick);
-            }
-
-            // Event handlers
-
-            static onClick = () => {
-                this.ui.toggleDetails(!this.ui.details.animatedIn);
-
-                Point3D.animateOut();
-            };
         }
 
         class PanelController {
@@ -915,30 +938,14 @@
             }
 
             static addListeners() {
-                Stage.events.on('details', this.onDetails);
-                Stage.events.on('ui', this.onUI);
-                this.thread.on('details', this.onServerDetails);
-                this.thread.on('data', this.onServerData);
-                this.thread.on('status', this.onServerStatus);
+                this.thread.on('details', this.onDetails);
+                this.thread.on('data', this.onData);
+                this.thread.on('status', this.onStatus);
             }
 
             // Event handlers
 
-            static onDetails = ({ open }) => {
-                if (open) {
-                    this.menu.animateIn();
-                } else {
-                    this.menu.animateOut();
-                }
-            };
-
-            static onUI = ({ open }) => {
-                if (!open) {
-                    this.menu.animateOut();
-                }
-            };
-
-            static onServerDetails = ({
+            static onDetails = ({
                 projectDomain,
                 networkName,
                 serverVersion,
@@ -1132,28 +1139,6 @@
                     this.ui.css({ position: 'static' });
                     this.ui.details.css({ minWidth: 220 });
                     this.ui.animateIn();
-
-                    this.container = new Interface('.container');
-                    this.container.css({
-                        position: 'fixed',
-                        left: '50vw',
-                        top: 0,
-                        width: '50vw',
-                        height: '100%',
-                        pointerEvents: 'none'
-                    });
-                    this.ui.add(this.container);
-
-                    this.menu = new Menu({
-                        bottom: true,
-                        itemWidth: 74,
-                        items: ['Latency', 'Load', 'Clients'],
-                        active: 'Load'
-                    });
-                    this.menu.css({ position: 'absolute' });
-                    this.menu.events.on('update', this.onMenu);
-                    this.container.add(this.menu);
-
                     document.body.appendChild(this.ui.element);
 
                     this.ui.detailsUptime = this.ui.details.content[2].children[1];
@@ -1184,7 +1169,6 @@
 
                     Stage.events.emit('start');
                     window.addEventListener('keyup', this.onKeyUp);
-                    window.dispatchEvent(new Event('resize'));
                 } else {
                     this.ui.detailsMem.html(`${memUsed} / ${memTotal} (${memUsedPercentage}%)`);
                     this.ui.detailsMemMeter.update(memUsedPercentage);
@@ -1197,7 +1181,7 @@
                 }
             };
 
-            static onServerData = ({ timestampData, latencyAvgData, loadAvgData, clientsData }) => {
+            static onData = ({ timestampData, latencyAvgData, loadAvgData, clientsData }) => {
                 this.timestampData = new TimestampData();
                 this.timestampData.setArrays(timestampData);
                 this.timestampData.addMarker([this.restartTime, 'Restart']);
@@ -1226,7 +1210,7 @@
                 this.refresh();
             };
 
-            static onServerStatus = ({ currentTime, serverUptimeFormatted, latency, latencyAvg, loadAvg, numClients }) => {
+            static onStatus = ({ currentTime, serverUptimeFormatted, latency, latencyAvg, loadAvg, numClients }) => {
                 if (this.timestampData && currentTime !== undefined) {
                     this.timestampData.update(currentTime);
 
@@ -1317,15 +1301,10 @@
                 }
             };
 
-            static onMenu = ({ index }) => {
-                this.view.graph.setIndex(index);
-                this.view.point.onHover({ type: 'over' });
-            };
-
             static onKeyUp = e => {
                 if (e.ctrlKey && e.keyCode >= 55 && e.keyCode <= 57) { // Ctrl 7-9
-                    this.menu.index = e.keyCode - 55;
-                    this.menu.update();
+                    const index = e.keyCode - 55;
+                    this.view.point.setPanelIndex('Graph', index);
                 }
             };
 
@@ -1346,12 +1325,6 @@
 
                 // Cleanup
                 markers.length = 0;
-            };
-
-            static resize = (width, height, dpr) => {
-                if (this.ui) {
-                    this.menu.resize(width, height, dpr, this.ui.breakpoint);
-                }
             };
 
             static update = () => {
@@ -1589,7 +1562,6 @@
 
                 WorldController.resize(width, height, dpr);
                 CameraController.resize(width, height);
-                ServerStatusController.resize(width, height, dpr);
             };
 
             static onUpdate = (time, delta, frame) => {

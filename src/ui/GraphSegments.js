@@ -105,7 +105,6 @@ export class GraphSegments extends Interface {
         this.labelHoveredIn = false;
         this.needsUpdate = false;
         this.graphNeedsUpdate = false;
-        this.initialized = false;
 
         if (!Array.isArray(this.lookupPrecision)) {
             this.lookupPrecision = new Array(this.segments.length).fill(this.lookupPrecision);
@@ -964,12 +963,6 @@ export class GraphSegments extends Interface {
             this.items.forEach(item => {
                 item.clearTween();
             });
-        }
-
-        if (!this.initialized) {
-            this.initialized = true;
-
-            this.update();
         }
 
         if (fast) {

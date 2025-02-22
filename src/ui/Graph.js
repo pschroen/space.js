@@ -97,7 +97,6 @@ export class Graph extends Interface {
         this.hoveredIn = false;
         this.needsUpdate = false;
         this.graphNeedsUpdate = false;
-        this.initialized = false;
 
         this.lineColors = {
             graph: Stage.rootStyle.getPropertyValue('--ui-color-line').trim(),
@@ -763,12 +762,6 @@ export class Graph extends Interface {
             this.items.forEach(item => {
                 item.clearTween();
             });
-        }
-
-        if (!this.initialized) {
-            this.initialized = true;
-
-            this.update();
         }
 
         if (fast) {

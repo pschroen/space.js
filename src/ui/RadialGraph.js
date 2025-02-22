@@ -115,7 +115,6 @@ export class RadialGraph extends Interface {
         this.hoveredIn = false;
         this.needsUpdate = false;
         this.graphNeedsUpdate = false;
-        this.initialized = false;
 
         if (this.startAngle < 0) {
             this.startAngle += TwoPI;
@@ -977,12 +976,6 @@ export class RadialGraph extends Interface {
             this.items.forEach(item => {
                 item.clearTween();
             });
-        }
-
-        if (!this.initialized) {
-            this.initialized = true;
-
-            this.update();
         }
 
         if (fast) {

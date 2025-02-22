@@ -135,7 +135,7 @@
                 for (let i = 0, l = array.length; i < l; i++) {
                     const value = array[i];
                     const formatted = Utils.formatDateTimeSeconds(value);
-                    const [date, time] = formatted.split(', ');
+                    const [date, time] = formatted.split(/, | at /);
 
                     if (i === 0) {
                         lastDate = date;

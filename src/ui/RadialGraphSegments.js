@@ -57,6 +57,7 @@ export class RadialGraphSegments extends Interface {
         labelDistance = 30,
         suffix = '',
         format = value => `${value}${suffix}`,
+        hoverLabels = false,
         noHover = false,
         noMarker = false,
         noMarkerDrag = false,
@@ -83,6 +84,7 @@ export class RadialGraphSegments extends Interface {
         this.infoDistanceY = infoDistanceY;
         this.labelDistance = labelDistance;
         this.format = format;
+        this.hoverLabels = hoverLabels;
         this.noHover = noHover;
         this.noMarker = noMarker;
         this.noMarkerDrag = noMarkerDrag;
@@ -121,6 +123,7 @@ export class RadialGraphSegments extends Interface {
         this.isDragging = false;
         this.isDraggingAway = false;
         this.animatedIn = false;
+        this.labelsAnimatedIn = false;
         this.hoveredIn = false;
         this.labelHoveredIn = false;
         this.needsUpdate = false;
@@ -1179,6 +1182,22 @@ export class RadialGraphSegments extends Interface {
         this.labelHoveredIn = false;
     }
 
+    animateLabelsIn() {
+        this.labels.forEach(label => {
+            label.clearTween().tween({ opacity: 1 }, 400, 'easeOutCubic', 200);
+        });
+
+        this.labelsAnimatedIn = true;
+    }
+
+    animateLabelsOut() {
+        this.labels.forEach(label => {
+            label.clearTween().tween({ opacity: 0 }, 300, 'easeOutSine');
+        });
+
+        this.labelsAnimatedIn = false;
+    }
+
     animateIn(fast) {
         this.addListeners();
 
@@ -1233,9 +1252,11 @@ export class RadialGraphSegments extends Interface {
                         this.hoverIn();
                     }
 
-                    this.labels.forEach(label => {
-                        label.tween({ opacity: 1 }, 500, 'easeOutSine');
-                    });
+                    if (!this.hoverLabels) {
+                        this.labels.forEach(label => {
+                            label.tween({ opacity: 1 }, 500, 'easeOutSine');
+                        });
+                    }
 
                     if (!this.noMarker) {
                         this.items.forEach(item => {
@@ -1252,6 +1273,10 @@ export class RadialGraphSegments extends Interface {
             }, () => {
                 this.needsUpdate = true;
             });
+
+            if (this.hoverLabels) {
+                this.animateLabelsIn();
+            }
         }
     }
 
@@ -1280,10 +1305,6 @@ export class RadialGraphSegments extends Interface {
         tween(this.props, { yMultiplier: 0 }, 300, 'easeOutCubic', null, () => {
             this.needsUpdate = true;
 
-            this.labels.forEach(label => {
-                label.css({ opacity: this.props.yMultiplier });
-            });
-
             if (!this.noMarker) {
                 this.items.forEach(item => {
                     item.multiplier = this.props.yMultiplier;
@@ -1292,6 +1313,8 @@ export class RadialGraphSegments extends Interface {
                 });
             }
         });
+
+        this.animateLabelsOut();
     }
 
     destroy() {

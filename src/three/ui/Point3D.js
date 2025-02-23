@@ -1253,6 +1253,8 @@ export class Point3D extends Group {
             }
 
             this.animatedIn = true;
+        } else if (this.graph) {
+            this.graph.animateLabelsIn();
         }
 
         if (!this.point.animatedIn) {
@@ -1271,6 +1273,8 @@ export class Point3D extends Group {
                 }
 
                 this.animatedIn = false;
+            } else {
+                this.graph.animateLabelsOut();
             }
 
             this.point.animateOut(true);

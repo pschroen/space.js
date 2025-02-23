@@ -737,6 +737,7 @@
                         labels: ['', '12hrs'],
                         range: 300,
                         suffix: 'ms',
+                        hoverLabels: true,
                         noMarkerDrag: true
                     });
                     object.graph.add(object.latencyAvgGraph);
@@ -752,6 +753,7 @@
                         labels: ['', '12hrs'],
                         range: 400,
                         suffix: '%',
+                        hoverLabels: true,
                         noMarkerDrag: true
                     });
                     object.graph.add(object.loadAvgGraph);
@@ -766,6 +768,7 @@
                         ratio: [0.125, 0.875], // 45 / 360 = 0.125
                         labels: ['', '12hrs'],
                         range: 10,
+                        hoverLabels: true,
                         noMarkerDrag: true
                     });
                     object.graph.add(object.clientsGraph);

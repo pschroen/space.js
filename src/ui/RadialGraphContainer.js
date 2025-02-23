@@ -122,6 +122,14 @@ export class RadialGraphContainer extends Interface {
         this.children.forEach(child => child.update());
     }
 
+    animateLabelsIn() {
+        this.children.forEach(child => child.animateLabelsIn());
+    }
+
+    animateLabelsOut() {
+        this.children.forEach(child => child.animateLabelsOut());
+    }
+
     animateIn(fast) {
         this.children.forEach(child => child.animateIn(fast));
     }

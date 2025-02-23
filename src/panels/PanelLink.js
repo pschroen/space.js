@@ -17,7 +17,7 @@ export class PanelLink extends Interface {
         this.callback = callback;
 
         this.init();
-        this.setValue(this.value, false);
+        this.setValue(this.value);
 
         this.addListeners();
     }
@@ -78,21 +78,17 @@ export class PanelLink extends Interface {
 
     // Public methods
 
-    setValue(value, notify = true) {
+    setValue(value) {
         this.value = value;
 
         this.element.childNodes[0].nodeValue = this.value;
-
-        this.update(notify);
     }
 
-    update(notify = true) {
-        if (notify) {
-            this.events.emit('update', { path: [], value: this.value, target: this });
+    update() {
+        this.events.emit('update', { path: [], value: this.value, target: this });
 
-            if (this.callback) {
-                this.callback(this.value, this);
-            }
+        if (this.callback) {
+            this.callback(this.value, this);
         }
     }
 

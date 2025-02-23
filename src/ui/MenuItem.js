@@ -103,10 +103,10 @@ export class MenuItem extends Interface {
 
     // Public methods
 
-    setTitle(title) {
-        this.title = title;
+    setName(name) {
+        this.name = name;
 
-        this.element.childNodes[0].nodeValue = this.title;
+        this.container.element.childNodes[0].nodeValue = this.name;
     }
 
     activate(direction) {

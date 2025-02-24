@@ -469,7 +469,7 @@
                         this.send({ event, message });
                         break;
                     case 'server-details': {
-                        const { details/* , serverUptime, latency */ } = message;
+                        const { details, serverUptime/* , latency */ } = message;
 
                         const {
                             // packageVersion,
@@ -486,6 +486,8 @@
                             processorName,
                             numProcessingUnits
                         } = details;
+
+                        const serverUptimeFormatted = Utils.formatSeconds(serverUptime);
 
                         const memUsed = memTotal - memFree;
 
@@ -536,6 +538,7 @@
                             networkName,
                             serverVersion,
                             restartTime,
+                            serverUptime: serverUptimeFormatted,
                             memUsed: memUsedFormatted,
                             memTotal: memTotalFormatted,
                             memUsedPercentage,
@@ -612,8 +615,7 @@
 
                         this.emit('status', {
                             currentTime,
-                            serverUptime,
-                            serverUptimeFormatted,
+                            serverUptime: serverUptimeFormatted,
                             latency,
                             latencyAvg,
                             loadAvg,
@@ -910,6 +912,7 @@
                 networkName,
                 serverVersion,
                 restartTime,
+                serverUptime,
                 memUsed,
                 memTotal,
                 memUsedPercentage,
@@ -952,7 +955,7 @@
                                         },
                                         {
                                             title: 'Uptime',
-                                            content: '',
+                                            content: serverUptime,
                                             width: 200
                                         },
                                         {
@@ -1185,7 +1188,7 @@
                 this.refresh();
             };
 
-            static onStatus = ({ currentTime, serverUptimeFormatted, latency, latencyAvg, loadAvg, numClients }) => {
+            static onStatus = ({ currentTime, serverUptime, latency, latencyAvg, loadAvg, numClients }) => {
                 if (this.timestampData && currentTime !== undefined) {
                     this.timestampData.update(currentTime);
 
@@ -1194,8 +1197,8 @@
                     }
                 }
 
-                if (serverUptimeFormatted !== undefined) {
-                    this.ui.detailsUptime.html(serverUptimeFormatted);
+                if (serverUptime !== undefined) {
+                    this.ui.detailsUptime.html(serverUptime);
                 }
 
                 if (latency !== undefined) {

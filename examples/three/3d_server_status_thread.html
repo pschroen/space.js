@@ -871,13 +871,14 @@
                             type: 'link',
                             value: 'Details',
                             callback: (value, item) => {
+                                clearTween(this.timeout);
+
                                 this.ui.toggleDetails(!this.ui.details.animatedIn);
 
                                 object.point.animateOut(true);
                                 object.point.deactivate();
 
-                                clearTween(this.timeout);
-                                this.timeout = delayedCall(1000, () => {
+                                this.timeout = delayedCall(300, () => {
                                     item.setValue(this.ui.details.animatedIn ? 'Map' : 'Details');
                                 });
                             }
@@ -1385,36 +1386,33 @@
             }
 
             static transition() {
-                const target = this.target;
+                clearTween(this);
+                clearTween(this.timeout);
+
+                Point3D.enabled = false;
 
                 this.progress = 0;
+                this.isTransitioning = true;
 
                 tween(this, { progress: 1 }, 1000, 'easeInOutSine', () => {
-                    this.camera = target;
-
-                    if (this.target !== this.camera) {
-                        this.transition();
-                    } else {
-                        this.isTransitioning = false;
-                    }
+                    this.isTransitioning = false;
                 }, () => {
-                    lerpCameras(this.worldCamera, target, this.progress);
-                    this.worldCamera.view.offsetX = MathUtils.lerp(this.worldCamera.view.offsetX, target === this.pointCamera ? this.offsetX : 0, this.progress);
+                    lerpCameras(this.worldCamera, this.camera, this.progress);
+                    this.worldCamera.view.offsetX = MathUtils.lerp(this.worldCamera.view.offsetX, this.camera === this.pointCamera ? this.offsetX : 0, this.progress);
                     this.worldCamera.updateProjectionMatrix();
+                });
+
+                this.timeout = delayedCall(300, () => {
+                    Point3D.enabled = true;
                 });
             }
 
             // Public methods
 
             static setCamera = camera => {
-                // this.camera = camera;
-                this.target = camera;
+                this.camera = camera;
 
-                if (!this.isTransitioning) {
-                    this.isTransitioning = true;
-
-                    this.transition();
-                }
+                this.transition();
             };
 
             static resize = (width, height) => {

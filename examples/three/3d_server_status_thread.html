@@ -35,7 +35,7 @@
         import { BoxGeometry, Color, Group, HemisphereLight, MathUtils, Mesh, MeshNormalMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        import { EventEmitter, Interface, PanelItem, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, consecutive, delayedCall, lerpCameras, median, peaks, ticker, tween } from '../../src/three.js';
+        import { EventEmitter, Interface, PanelItem, Point3D, RadialGraphContainer, RadialGraphSegmentsCanvas, Stage, Thread, UI, average, clearTween, consecutive, delayedCall, lerpCameras, median, peaks, ticker, tween } from '../../src/three.js';
 
         const isDebug = /[?&]debug/.test(location.search);
 
@@ -350,6 +350,20 @@
                 this.smallArrayReversed = smallArrayReversed;
                 this.realtimeGhostArray = realtimeGhostArray;
                 this.realtimeArray = realtimeArray;
+            };
+
+            getMax = () => {
+                let max = 0;
+
+                for (let i = 0, l = this.array.length; i < l; i++) {
+                    const value = this.array[i];
+
+                    if (value > max) {
+                        max = value;
+                    }
+                }
+
+                return max;
             };
 
             getPeaks = threshold => {
@@ -851,6 +865,7 @@
                             value: 'Load',
                             callback: value => {
                                 const index = graphOptions[value];
+
                                 object.graph.setIndex(index);
                             }
                         },
@@ -860,10 +875,16 @@
                         {
                             type: 'link',
                             value: 'Details',
-                            callback: () => {
+                            callback: (value, item) => {
                                 this.ui.toggleDetails(!this.ui.details.animatedIn);
+
                                 object.point.animateOut(true);
                                 object.point.deactivate();
+
+                                clearTween(this.timeout);
+                                this.timeout = delayedCall(1000, () => {
+                                    item.setValue(this.ui.details.animatedIn ? 'Map' : 'Details');
+                                });
                             }
                         }
                     ];
@@ -970,6 +991,7 @@
                 if (!this.ui) {
                     this.ui = new UI({
                         fps: true,
+                        detailsButton: true,
                         details: {
                             dividerLine: true,
                             width: '50vw',
@@ -1185,30 +1207,44 @@
             };
 
             static onData = ({ timestampData, latencyAvgData, loadAvgData, clientsData }) => {
+                // Timestamp data
                 this.timestampData = new TimestampData();
                 this.timestampData.setArrays(timestampData);
                 this.timestampData.addMarker([this.restartTime, 'Restart']);
 
+                // Latency average data (initially no data, all 0s)
                 this.latencyAvgData = new GraphData();
                 this.latencyAvgData.setArrays(latencyAvgData);
 
+                const latencyAvgMax = Math.max(300, this.latencyAvgData.getMax());
+
                 this.view.latencyAvgGraph.setGhostArray([...this.latencyAvgData.smallGhostArrayReversed, ...this.latencyAvgData.largeGhostArrayReversed]);
                 this.view.latencyAvgGraph.setArray([...this.latencyAvgData.smallArrayReversed, ...this.latencyAvgData.largeArrayReversed]);
+                this.view.latencyAvgGraph.setRange(latencyAvgMax);
 
+                // Load average data
                 this.loadAvgData = new GraphData();
                 this.loadAvgData.setArrays(loadAvgData);
 
+                const loadAvgMax = Math.max(400, this.loadAvgData.getMax());
+
                 this.ui.detailsLoadAvgGraph.setGhostArray([...this.loadAvgData.smallGhostArray, ...this.loadAvgData.realtimeGhostArray]);
                 this.ui.detailsLoadAvgGraph.setArray([...this.loadAvgData.smallArray, ...this.loadAvgData.realtimeArray]);
+                this.ui.detailsLoadAvgGraph.setRange(loadAvgMax);
 
                 this.view.loadAvgGraph.setGhostArray([...this.loadAvgData.smallGhostArrayReversed, ...this.loadAvgData.largeGhostArrayReversed]);
                 this.view.loadAvgGraph.setArray([...this.loadAvgData.smallArrayReversed, ...this.loadAvgData.largeArrayReversed]);
+                this.view.loadAvgGraph.setRange(loadAvgMax);
 
+                // Clients data
                 this.clientsData = new GraphData();
                 this.clientsData.setArrays(clientsData);
 
+                const clientsMax = Math.max(10, this.clientsData.getMax());
+
                 this.view.clientsGraph.setGhostArray([...this.clientsData.smallGhostArrayReversed, ...this.clientsData.largeGhostArrayReversed]);
                 this.view.clientsGraph.setArray([...this.clientsData.smallArrayReversed, ...this.clientsData.largeArrayReversed]);
+                this.view.clientsGraph.setRange(clientsMax);
 
                 this.refresh();
             };
@@ -1308,6 +1344,7 @@
                 if (e.ctrlKey && e.keyCode >= 55 && e.keyCode <= 57) { // Ctrl 7-9
                     const index = e.keyCode - 55;
                     this.view.point.setPanelIndex('Graph', index);
+                    this.view.point.onHover({ type: 'over' });
                 }
             };
 

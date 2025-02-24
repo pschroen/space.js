@@ -356,18 +356,13 @@
                 let max = 0;
 
                 for (let i = 0, l = this.array.length; i < l; i++) {
-                    const value = this.array[i];
-
-                    if (value > max) {
-                        max = value;
-                    }
+                    max = Math.max(max, this.array[i]);
                 }
 
                 return max;
             };
 
             getPeaks = threshold => {
-                // Past 12hrs (~10800 status updates)
                 const groups = consecutive(peaks(this.array, this.largeChunkSize / 2, threshold));
 
                 return groups.map(array => array[0] / 10800); // First index normalized

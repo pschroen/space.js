@@ -62,7 +62,7 @@ export class Meter extends Interface {
         this.frame = 0;
 
         this.height = this.noRange ? 20 : this.noText ? 15 : 40;
-        this.rangeWidth = this.getRangeWidth(this.range);
+        this.rangeWidth = 0;
         this.animatedIn = false;
         this.needsUpdate = false;
 

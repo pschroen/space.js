@@ -46,7 +46,7 @@ export class PanelGraph extends Interface {
         this.callback = callback;
 
         this.width = parseFloat(Stage.rootStyle.getPropertyValue('--ui-panel-width').trim());
-        this.rangeHeight = this.getRangeHeight(this.range);
+        this.rangeHeight = 0;
         this.array = [];
         this.ghostArray = [];
         this.pathData = '';
@@ -95,6 +95,7 @@ export class PanelGraph extends Interface {
 
         this.init();
         this.initCanvas();
+        this.setRange(this.range);
         this.setArray(this.value);
 
         if (this.ghost !== undefined) {

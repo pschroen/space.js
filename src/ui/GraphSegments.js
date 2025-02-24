@@ -155,6 +155,7 @@ export class GraphSegments extends Interface {
             this.setMarkers(this.markers);
         }
 
+        this.setRange(this.range);
         this.setArray(this.value);
 
         if (this.ghost !== undefined) {
@@ -494,6 +495,19 @@ export class GraphSegments extends Interface {
         }
 
         this.data = data;
+    }
+
+    setRange(range) {
+        this.range = range;
+        this.rangeHeight = this.getRangeHeight(this.range);
+
+        this.needsUpdate = true;
+
+        if (!this.noHover && this.lookupPrecision) {
+            this.graphNeedsUpdate = true;
+        }
+
+        this.update();
     }
 
     setArray(value) {

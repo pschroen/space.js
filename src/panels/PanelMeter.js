@@ -37,7 +37,7 @@ export class PanelMeter extends Interface {
 
         this.height = this.noText ? 20 : 40;
         this.width = parseFloat(Stage.rootStyle.getPropertyValue('--ui-panel-width').trim());
-        this.rangeWidth = this.getRangeWidth(this.range);
+        this.rangeWidth = 0;
         this.needsUpdate = false;
 
         this.lineColors = {

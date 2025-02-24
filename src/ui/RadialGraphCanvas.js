@@ -137,6 +137,7 @@ export class RadialGraphCanvas extends Interface {
             this.setMarkers(this.markers);
         }
 
+        this.setRange(this.range);
         this.setArray(this.value);
 
         if (this.ghost !== undefined) {
@@ -443,6 +444,15 @@ export class RadialGraphCanvas extends Interface {
             this.lastCursor = cursor;
 
             this.events.emit('cursor', { cursor, target: this });
+        }
+    }
+
+    setRange(range) {
+        this.range = range;
+        this.rangeHeight = this.getRangeHeight(this.range);
+
+        if (!this.noHover && this.lookupPrecision) {
+            this.graphNeedsUpdate = true;
         }
     }
 
